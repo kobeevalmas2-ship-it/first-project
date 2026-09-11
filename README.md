@@ -1,5 +1,5 @@
 # first-project
 
 қатысушылар:
-Almas - https://github.com/kobeevalmas2-ship-it
+Almas - https://github.com/kobeevalmas2-ship-it привет 
 Asylbek - https://github.com/kaenasy
