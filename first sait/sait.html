@@ -1,26 +1,34 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Моё резюме</title>
-  <link rel="stylesheet" href="style.css">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Участники</title>
+	<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="hero">
-    <div class="hero__text">
-      <p class="eyebrow">РЕЗЮМЕ</p>
-      <h1>Привет, я <span>ваше имя</span></h1>
-      <p class="intro">Начинающий специалист, который создаёт интересные проекты и постоянно развивает свои навыки.</p>
-      <a class="portfolio-link" href="portfolio.html">Открыть портфолио</a>
-    </div>
+	<main class="members-page">
+		<p class="eyebrow">НАША КОМАНДА</p>
+		<h1>Участники</h1>
+		<p class="subtitle">Нажмите на фотографию, чтобы открыть резюме участника.</p>
 
-    <a class="photo-link" href="portfolio.html" aria-label="Открыть моё портфолио">
-      <img src="photo.jpg" alt="Моя фотография">
-      <span>Смотреть портфолио →</span>
-    </a>
-  </main>
+		<section class="members" aria-label="Участники проекта">
+			<a class="member-card" href="resume1.html">
+				<img src="photo1.jpg" alt="Фотография первого участника">
+				<span class="member-card__info">
+					<strong>Первый участник</strong>
+					<small>Открыть резюме →</small>
+				</span>
+			</a>
 
-  <script src="script.js"></script>
+			<a class="member-card" href="resume2.html">
+				<img src="photo2.jpg" alt="Фотография второго участника">
+				<span class="member-card__info">
+					<strong>Второй участник</strong>
+					<small>Открыть резюме →</small>
+				</span>
+			</a>
+		</section>
+	</main>
 </body>
 </html>
