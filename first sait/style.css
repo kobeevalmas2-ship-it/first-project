@@ -46,7 +46,7 @@ body {
 .members-page {
 	max-width: 1080px;
 	margin: 0 auto;
-	padding: 80px 28px;
+	padding: 40px 28px 88px;
 }
 
 .theme-tools {
@@ -97,6 +97,44 @@ h1 {
 	gap: 28px;
 }
 
+.home-header {
+	padding: 36px 0 24px;
+}
+
+.home-header h1 {
+	max-width: 850px;
+}
+
+.home-section {
+	margin-top: 48px;
+}
+
+.section-heading {
+	display: flex;
+	justify-content: space-between;
+	align-items: end;
+	gap: 24px;
+	margin-bottom: 24px;
+}
+
+.section-heading .eyebrow {
+	margin-bottom: 10px;
+}
+
+.section-heading h2 {
+	margin: 0;
+	font-size: clamp(30px, 5vw, 48px);
+	font-weight: 400;
+	line-height: 1;
+}
+
+.section-heading > p {
+	max-width: 290px;
+	margin: 0 0 3px;
+	color: var(--muted);
+	font: 14px/1.6 Arial, sans-serif;
+}
+
 .task-navigation {
 	margin: 0 0 28px;
 }
@@ -136,7 +174,7 @@ h1 {
 }
 
 .member-card:nth-child(2) {
-	margin-top: 42px;
+	margin-top: 0;
 }
 
 .member-card:hover,
@@ -173,6 +211,82 @@ h1 {
 	color: var(--accent);
 	font: 700 12px Arial, sans-serif;
 	white-space: nowrap;
+}
+
+.tools-section {
+	border-top: 1px solid var(--line);
+	padding-top: 36px;
+}
+
+.tools-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 18px;
+}
+
+.tool-card {
+	display: flex;
+	gap: 20px;
+	min-height: 190px;
+	padding: 24px;
+	border: 1px solid var(--line);
+	color: var(--ink);
+	background: var(--surface);
+	text-decoration: none;
+	transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.tool-card:hover,
+.tool-card:focus-visible {
+	transform: translateY(-4px);
+	border-color: var(--accent);
+	box-shadow: 8px 8px 0 var(--accent);
+}
+
+.tool-card:focus-visible {
+	outline: 3px solid var(--accent);
+	outline-offset: 3px;
+}
+
+.tool-card__number {
+	color: var(--accent);
+	font: 700 13px/1.5 Arial, sans-serif;
+}
+
+.tool-card__content {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+.tool-card__content strong {
+	font-size: 23px;
+	font-weight: 400;
+}
+
+.tool-card__content small {
+	max-width: 310px;
+	margin-top: 10px;
+	color: var(--muted);
+	font: 14px/1.6 Arial, sans-serif;
+	white-space: normal;
+}
+
+.tool-card__link {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	margin-top: auto;
+	padding-top: 24px;
+	color: var(--accent);
+	font: 700 13px Arial, sans-serif;
+}
+
+.tool-card__link span {
+	font-size: 18px;
 }
 
 .resume-page {
@@ -230,6 +344,10 @@ h1 {
 		padding: 52px 20px;
 	}
 
+	.home-header {
+		padding-top: 20px;
+	}
+
 	.members {
 		grid-template-columns: 1fr;
 	}
@@ -241,5 +359,20 @@ h1 {
 	.resume-header {
 		grid-template-columns: 1fr;
 		margin-top: 48px;
+	}
+
+	.section-heading {
+		align-items: flex-start;
+		flex-direction: column;
+		gap: 10px;
+	}
+
+	.tools-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.tool-card {
+		min-height: 170px;
+		padding: 20px;
 	}
 }
