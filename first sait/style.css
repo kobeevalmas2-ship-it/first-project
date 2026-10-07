@@ -1,9 +1,34 @@
 :root {
+	color-scheme: light;
 	--ink: #17212b;
 	--muted: #66727d;
 	--paper: #f5f1e9;
 	--accent: #e26d4f;
 	--line: #d7cec1;
+	--surface: #fff;
+	--placeholder: #d8d1c6;
+	--button-bg: #17212b;
+	--button-ink: #fff;
+	--button-hover: #354453;
+	--error: #b91c1c;
+	--cell-line: #b6afa4;
+	--cell-outline: #17212b;
+}
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--ink: #edf1f7;
+	--muted: #afb8c5;
+	--paper: #151a21;
+	--accent: #ff9578;
+	--line: #434c59;
+	--surface: #202731;
+	--placeholder: #343e4c;
+	--button-bg: #edf1f7;
+	--button-ink: #151a21;
+	--button-hover: #cbd5e1;
+	--error: #ff9090;
+	--cell-line: #778292;
 }
 
 * {
@@ -23,6 +48,27 @@ body {
 	margin: 0 auto;
 	padding: 80px 28px;
 }
+
+.theme-tools {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 24px;
+}
+
+.theme-toggle {
+	min-height: 44px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	padding: 10px 16px;
+	color: var(--ink);
+	background: var(--surface);
+	font: 700 14px/1.4 Arial, sans-serif;
+	cursor: pointer;
+}
+
+.theme-toggle:hover { border-color: var(--accent); }
+.theme-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.theme-toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 
 .eyebrow {
 	margin: 0 0 18px;
@@ -51,6 +97,32 @@ h1 {
 	gap: 28px;
 }
 
+.task-navigation {
+	margin: 0 0 28px;
+}
+
+.task-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	padding: 12px 22px;
+	border-radius: 6px;
+	color: var(--button-ink);
+	background: var(--button-bg);
+	font: 700 16px/1.3 Arial, sans-serif;
+	text-decoration: none;
+}
+
+.task-button:hover {
+	background: var(--button-hover);
+}
+
+.task-button:focus-visible {
+	outline: 3px solid var(--accent);
+	outline-offset: 3px;
+}
+
 .member-card {
 	position: relative;
 	display: block;
@@ -58,7 +130,7 @@ h1 {
 	border: 1px solid var(--line);
 	padding: 14px 14px 78px;
 	color: var(--ink);
-	background: #fff;
+	background: var(--surface);
 	text-decoration: none;
 	transition: transform .25s ease, box-shadow .25s ease;
 }
@@ -78,7 +150,7 @@ h1 {
 	width: 100%;
 	aspect-ratio: 4 / 5;
 	object-fit: cover;
-	background: #d8d1c6;
+	background: var(--placeholder);
 }
 
 .member-card__info {
@@ -128,7 +200,7 @@ h1 {
 	aspect-ratio: 1;
 	object-fit: cover;
 	border-radius: 50%;
-	background: #d8d1c6;
+	background: var(--placeholder);
 }
 
 .resume-header h1 {

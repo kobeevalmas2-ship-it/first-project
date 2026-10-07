@@ -1,0 +1,58 @@
+.table-page {
+	max-width: 1080px;
+	margin: 0 auto;
+	padding: 48px 28px;
+}
+
+.table-page .eyebrow { margin-top: 48px; }
+.table-page h1 { font-size: clamp(38px, 7vw, 72px); }
+.table-page .subtitle { max-width: 720px; margin-bottom: 28px; }
+
+.table-controls {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px;
+	font: 16px/1.5 Arial, sans-serif;
+}
+
+.table-controls { align-items: end; }
+.table-controls label { display: grid; gap: 8px; }
+.table-controls input, .create-button {
+	min-height: 44px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	padding: 10px 14px;
+	font: inherit;
+}
+
+.table-controls input { width: 150px; color: var(--ink); background: var(--surface); }
+.create-button { background: var(--button-bg); color: var(--button-ink); cursor: pointer; }
+.create-button:hover { background: var(--button-hover); }
+.table-controls input:focus-visible, .create-button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.table-hint { color: var(--muted); font: 14px/1.6 Arial, sans-serif; }
+.color-info {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px 24px;
+	margin: 24px 0 16px;
+	font: 16px/1.5 Arial, sans-serif;
+}
+#total-count { color: var(--muted); }
+#color-counts { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+.color-count-item { display: inline-flex; align-items: center; gap: 6px; }
+.color-count-item [data-count-color] { font-weight: 700; font-variant-numeric: tabular-nums; }
+.color-preview { display: inline-block; width: 24px; height: 24px; border: 1px solid var(--line); border-radius: 50%; }
+#table-error { color: var(--error); font: 16px/1.5 Arial, sans-serif; }
+.table-container { overflow-x: auto; padding-bottom: 12px; }
+.table-container table { border-collapse: collapse; background: var(--surface); }
+.table-container caption { padding: 12px 0; text-align: left; font: 14px Arial, sans-serif; color: var(--muted); }
+.table-container td { border: 1px solid var(--cell-line); padding: 0; }
+.cell-button { display: block; width: 44px; height: 44px; border: 0; padding: 0; background: transparent; cursor: pointer; }
+.cell-button:hover { box-shadow: inset 0 0 0 2px var(--cell-outline); }
+.cell-button:focus-visible { outline: 3px solid var(--cell-outline); outline-offset: -4px; }
+
+@media (max-width: 650px) {
+	.table-page { padding: 32px 20px; }
+}

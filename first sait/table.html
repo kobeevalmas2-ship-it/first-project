@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Интерактивті кесте</title>
+	<script src="theme.js"></script>
+	<link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="table.css">
+	<script src="table.js" defer></script>
+</head>
+<body>
+	<main class="table-page">
+		<div class="theme-tools">
+			<button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">Қараңғы тақырып</button>
+		</div>
+		<a class="back-link" href="sait.html">← Басты бет</a>
+		<p class="eyebrow">ИНТЕРАКТИВТІ КЕСТЕ</p>
+		<h1>Түстермен жұмыс</h1>
+		<p class="subtitle">Кесте өлшемін енгізіңіз және ұяшықтарды басыңыз. Әр басқанда түсі кезекпен ауысады: ақ → көк → жасыл → қызыл → ақ.</p>
+		<form id="table-form" class="table-controls">
+			<label>Жолдар саны
+				<input id="rows" type="number" min="1" max="50" step="1" value="5" required>
+			</label>
+			<label>Бағандар саны
+				<input id="columns" type="number" min="1" max="50" step="1" value="5" required>
+			</label>
+			<button class="create-button" type="submit">Кесте құру</button>
+		</form>
+		<p class="table-hint">Әр өлшем 1–50 аралығында болуы керек. Жаңа кесте құрылғанда боялған ұяшықтар тазартылады.</p>
+		<p id="table-error" role="alert"></p>
+		<div class="color-info" role="status" aria-live="polite" aria-atomic="true">
+			<span id="total-count"></span>
+			<div id="color-counts"></div>
+		</div>
+		<div id="table-container" class="table-container"></div>
+	</main>
+</body>
+</html>
