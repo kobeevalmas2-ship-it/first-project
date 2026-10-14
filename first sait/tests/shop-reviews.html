@@ -31,6 +31,7 @@
 		const base = new URL("../", location.href).href;
 		const mock = `
 			window.usersFailed = true; window.userRequests = 0; window.testErrors = [];
+			window.cartsFailed = true; window.cartRequests = 0; window.slowCarts = false; window.cartsAborted = false; window.productRequests = 0;
 			window.addEventListener('error', event => window.testErrors.push(event.message));
 			const users = [
 				{ id: 9, firstName: 'Alice', lastName: 'Test', email: 'alice@example.com', username: 'alice', age: 29, phone: '123', role: 'user', image: '',
@@ -43,8 +44,30 @@
 					{ reviewerName: 'Bobby Test', reviewerEmail: 'bobby@example.com', rating: 4, comment: 'Хороший товар' },
 					{ reviewerName: 'Alice Test', reviewerEmail: 'unmatched@example.com', rating: 3, comment: 'Профиля нет' }
 				] }));
-			window.fetch = async url => {
+			window.fetch = async (url, options = {}) => {
 				const path = new URL(url).pathname;
+				if (path === '/users/9/carts' || path === '/users/11/carts') {
+					window.cartRequests++;
+					if (path === '/users/11/carts' && window.slowCarts) return new Promise((resolve, reject) => {
+						options.signal.addEventListener('abort', () => { window.cartsAborted = true; reject(new DOMException('Cancelled', 'AbortError')); }, { once: true });
+					});
+					if (path === '/users/9/carts' && window.cartsFailed) throw new Error('Carts offline');
+					const carts = path === '/users/11/carts' ? [] : [
+						{ id: 21, userId: 9, total: 40, discountedTotal: 34, totalProducts: 2, totalQuantity: 4, products: [
+							{ id: 2, title: 'Товар 2', price: 10, quantity: 3, discountPercentage: 20, discountedTotal: 24, thumbnail: '' },
+							{ id: 4, title: 'Товар 4', price: 10, quantity: 1, discountPercentage: 0, discountedTotal: 10, thumbnail: '' }
+						] },
+						{ id: 22, userId: 9, total: 20, discountedTotal: 20, totalProducts: 1, totalQuantity: 2, products: [
+							{ id: 3, title: 'Товар 3', price: 10, quantity: 2, discountPercentage: 0, discountedTotal: 20, thumbnail: '' }
+						] },
+						{ id: 99, userId: 11, products: [] }
+					];
+					return { ok: true, json: async () => ({ carts, total: carts.length }) };
+				}
+				if (path === '/products/4') {
+					window.productRequests++;
+					return { ok: true, json: async () => ({ ...products[0], id: 4, title: 'Товар 4' }) };
+				}
 				if (path === '/users') {
 					window.userRequests++;
 					if (window.usersFailed) throw new Error('Offline');
@@ -83,11 +106,40 @@
 		const authorName = $(".reviewer-button").textContent.trim();
 		$(".reviewer-button").click();
 		assert($("#reviewer-dialog").open && $("#product-dialog").open && $("#reviewer-title").textContent === authorName, "Профиль автора открывается поверх товара");
+		assert($(".reviewer-information") && $(".reviewer-carts"), "Данные профиля и корзины занимают две отдельные части карточки");
+		if (!live) {
+			await until(() => $(".retry-reviewer-carts"));
+			assert($(".reviewer-details") && !$(".reviewer-cart"), "Ошибка корзин не скрывает данные профиля");
+			win.cartsFailed = false;
+			$(".retry-reviewer-carts").click();
+			await until(() => $(".reviewer-cart"));
+			assert(doc.querySelectorAll(".reviewer-cart").length === 2 && doc.querySelectorAll(".reviewer-cart-product").length === 3, "Показаны все корзины и товары выбранного пользователя");
+			assert(!$(".reviewer-carts-content").textContent.includes("№ 99"), "Чужая корзина не показана в профиле");
+			assert($(".reviewer-cart-meta").textContent.includes("× 3") && $(".reviewer-cart-meta").textContent.includes("20%") && $(".reviewer-cart-totals").textContent.includes("34"), "Количество, скидка и итог соответствуют API корзины");
+			frame.style.width = "1100px";
+			await tick();
+			assert($(".reviewer-carts").getBoundingClientRect().left >= $(".reviewer-information").getBoundingClientRect().right, "На широком экране корзины справа от профиля");
+			frame.style.width = "360px";
+			await tick();
+			assert($(".reviewer-carts").getBoundingClientRect().top >= $(".reviewer-information").getBoundingClientRect().bottom, "На узком экране корзины под профилем");
+		} else {
+			await until(() => $(".reviewer-carts-content").getAttribute("aria-busy") === "false");
+			assert($(".reviewer-cart") || $(".reviewer-carts-empty"), "Корзины настоящего пользователя загружены");
+		}
 		assert($(".reviewer-details").textContent.includes("Email") && $(".reviewer-details").textContent.includes("Компания"), "В профиле показаны контакты и компания");
 		assert(!$("#reviewer-content").textContent.includes("sensitive-test-value") && !$("#reviewer-content").textContent.includes("password"), "Профиль не выводит чувствительные поля");
 		doc.documentElement.dataset.theme = "dark";
 		assert(win.getComputedStyle($("#reviewer-dialog")).backgroundColor === "rgb(32, 39, 49)", "Профиль поддерживает тёмную тему");
 		assert($("#reviewer-dialog").getBoundingClientRect().width <= 360 && $("#reviewer-content").scrollWidth <= $("#reviewer-content").clientWidth, "Профиль помещается на ширине 360px");
+		if (!live) {
+			$("[data-reviewer-product-id='4']").click();
+			await until(() => $("#dialog-title")?.textContent === "Товар 4");
+			assert(!$("#reviewer-dialog").open && $("#product-dialog").open && win.productRequests === 1, "Товар из корзины открывается, даже если его нет на странице каталога");
+			await until(() => $(".reviewer-button"));
+			$(".reviewer-button").click();
+			await until(() => $(".reviewer-cart"));
+			assert(win.cartRequests === 2, "Корзины повторно открытого пользователя берутся из кеша");
+		}
 		$("#close-reviewer").click();
 		assert(!$("#reviewer-dialog").open && $("#product-dialog").open, "Закрытие профиля возвращает к товару");
 		$("#close-dialog").click();
@@ -96,12 +148,44 @@
 		await until(() => $(".reviewer-button"));
 		if (!live) {
 			assert(win.userRequests === 2, "После успешного повтора пользователи кешируются для других товаров");
+			win.slowCarts = true;
+			$("[data-reviewer-id='11']").click();
+			assert($(".reviewer-cart-skeleton"), "При загрузке корзины показан skeleton");
+			$("#close-reviewer").click();
+			await tick();
+			assert(win.cartsAborted, "Закрытие профиля отменяет запрос корзин");
+			win.slowCarts = false;
+			$("[data-reviewer-id='11']").click();
+			await until(() => $(".reviewer-carts-empty"));
+			assert(!$(".reviewer-cart-product"), "Пользователь без корзин видит пустое состояние без чужих товаров");
+			$("#close-reviewer").click();
 			$("#close-dialog").click();
 			await tick();
 			doc.querySelectorAll(".product-open")[2].click();
 			await until(() => $(".detail-reviews .dialog-empty"));
 			assert($(".detail-reviews .dialog-empty").textContent === "Пока нет отзывов.", "Для товара без отзывов показано пустое состояние");
 			assert(win.testErrors.length === 0, "Нет необработанных ошибок JavaScript");
+		} else {
+			const data = await (await win.fetch("https://dummyjson.com/carts?limit=0")).json();
+			const owners = new Set(data.carts.map((cart) => cart.userId));
+			let candidate = Array.from(doc.querySelectorAll(".reviewer-button")).find((button) => owners.has(Number(button.dataset.reviewerId)));
+			while (!$("#show-more").hidden) $("#show-more").click();
+			for (const productButton of doc.querySelectorAll(".product-open")) {
+				if (candidate) break;
+				$("#close-dialog").click();
+				await tick();
+				productButton.click();
+				await until(() => $(".reviewer-button"));
+				candidate = Array.from(doc.querySelectorAll(".reviewer-button")).find((button) => owners.has(Number(button.dataset.reviewerId)));
+			}
+			assert(candidate, "В настоящих данных найден автор отзыва с корзиной");
+			candidate.click();
+			await until(() => $(".reviewer-cart-product"));
+			const productButton = $(".reviewer-cart-product");
+			const title = productButton.querySelector("strong").textContent;
+			productButton.click();
+			await until(() => $("#dialog-title")?.textContent === title);
+			assert(!$("#reviewer-dialog").open && $("#product-dialog").open, "Из настоящей корзины открывается правильный товар магазина");
 		}
 		result.textContent = `PASS: ${checks.length} проверок${live ? " (настоящий API)" : ""}\n` + checks.join("\n");
 	} catch (error) {

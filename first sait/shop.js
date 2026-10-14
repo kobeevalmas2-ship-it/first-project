@@ -74,6 +74,8 @@
 		usersByEmail: new Map(),
 		usersLoaded: false,
 		usersPromise: null,
+		reviewerController: null,
+		reviewerCarts: new Map(),
 	};
 
 	const products = new window.ShopProducts({
@@ -838,6 +840,9 @@
 		if (!Number.isSafeInteger(id) || id <= 0) return;
 		const user = state.usersById.get(id);
 		if (!user) return;
+		if (state.reviewerController) state.reviewerController.abort();
+		const controller = new AbortController();
+		state.reviewerController = controller;
 		const name = `${user.firstName} ${user.lastName}`.trim();
 		elements.reviewerTitle.textContent = name;
 		elements.reviewerContent.replaceChildren();
@@ -880,8 +885,144 @@
 		const note = document.createElement("p");
 		note.className = "demo-note";
 		note.textContent = "Демонстрационный профиль из DummyJSON. Данные вымышленные.";
-		elements.reviewerContent.append(identity, details, note);
+		const layout = document.createElement("div");
+		layout.className = "reviewer-layout";
+		const information = document.createElement("section");
+		information.className = "reviewer-information";
+		information.setAttribute("aria-label", "Данные пользователя");
+		information.append(identity, details, note);
+		const carts = document.createElement("section");
+		carts.className = "reviewer-carts";
+		carts.setAttribute("aria-labelledby", "reviewer-carts-title");
+		const heading = document.createElement("h3");
+		heading.id = "reviewer-carts-title";
+		heading.textContent = "Корзины пользователя";
+		const hint = document.createElement("p");
+		hint.className = "demo-note";
+		hint.textContent = "Нажмите на товар, чтобы открыть его карточку.";
+		const content = document.createElement("div");
+		content.className = "reviewer-carts-content";
+		content.setAttribute("aria-live", "polite");
+		carts.append(heading, hint, content);
+		layout.append(information, carts);
+		elements.reviewerContent.append(layout);
 		if (!elements.reviewerDialog.open) elements.reviewerDialog.showModal();
+		void loadReviewerCarts(id, content, controller.signal);
+	}
+
+	function closeReviewer() {
+		if (state.reviewerController) state.reviewerController.abort();
+		elements.reviewerDialog.close();
+	}
+
+	async function loadReviewerCarts(id, content, signal) {
+		content.replaceChildren();
+		content.setAttribute("aria-busy", "true");
+		const loading = document.createElement("p");
+		loading.className = "detail-meta";
+		loading.textContent = "Загружаем корзины…";
+		content.append(loading);
+		for (let index = 0; index < 3; index += 1) {
+			const skeleton = document.createElement("div");
+			skeleton.className = "reviewer-cart-skeleton skeleton-block";
+			skeleton.setAttribute("aria-hidden", "true");
+			content.append(skeleton);
+		}
+		try {
+			let carts = state.reviewerCarts.get(id);
+			if (!carts) {
+				const data = await api.request(`/users/${id}/carts?limit=0`, { signal });
+				if (!data || !Array.isArray(data.carts) || data.carts.some((cart) =>
+					!cart || !Number.isSafeInteger(cart.id) || cart.id <= 0 || !Array.isArray(cart.products))) {
+					throw new Error("Сервер вернул неверные данные корзин.");
+				}
+				carts = data.carts.filter((cart) => cart.userId === id);
+				if (signal.aborted) return;
+				state.reviewerCarts.set(id, carts);
+			}
+			if (signal.aborted || !content.isConnected) return;
+			content.replaceChildren();
+			if (!carts.length) {
+				const empty = document.createElement("p");
+				empty.className = "reviewer-carts-empty detail-meta";
+				empty.textContent = "У пользователя пока нет корзин в DummyJSON.";
+				content.append(empty);
+			} else {
+				for (const cart of carts) content.append(reviewerCart(cart));
+			}
+		} catch (error) {
+			if (signal.aborted || !content.isConnected) return;
+			const message = document.createElement("p");
+			message.className = "detail-meta";
+			message.setAttribute("role", "alert");
+			message.textContent = `Не удалось загрузить корзины. ${error.message}`;
+			const retry = document.createElement("button");
+			retry.type = "button";
+			retry.className = "shop-button shop-button--quiet retry-reviewer-carts";
+			retry.textContent = "Повторить";
+			retry.addEventListener("click", () => void loadReviewerCarts(id, content, signal));
+			content.replaceChildren(message, retry);
+		} finally {
+			content.setAttribute("aria-busy", "false");
+		}
+	}
+
+	function reviewerCart(cart) {
+		const card = document.createElement("article");
+		card.className = "reviewer-cart";
+		const heading = document.createElement("h4");
+		heading.textContent = `Корзина № ${cart.id}`;
+		const list = document.createElement("ul");
+		list.className = "reviewer-cart-products";
+		const items = cart.products.filter((item) => item && Number.isSafeInteger(item.id) && item.id > 0 &&
+			typeof item.title === "string" && Number.isFinite(item.price) && item.price >= 0 &&
+			Number.isSafeInteger(item.quantity) && item.quantity > 0);
+		let subtotal = 0;
+		let discountedTotal = 0;
+		let quantity = 0;
+		for (const product of items) {
+			const row = document.createElement("li");
+			const button = document.createElement("button");
+			button.type = "button";
+			button.className = "reviewer-cart-product";
+			button.dataset.reviewerProductId = String(product.id);
+			button.setAttribute("aria-label", `Открыть товар: ${product.title}`);
+			const image = createImage(product.thumbnail, "", "reviewer-cart-image");
+			const copy = document.createElement("span");
+			copy.className = "reviewer-cart-copy";
+			const title = document.createElement("strong");
+			title.textContent = product.title;
+			const discount = Number.isFinite(product.discountPercentage) ? Math.min(100, Math.max(0, product.discountPercentage)) : 0;
+			const sum = Number.isFinite(product.discountedTotal) ? product.discountedTotal : product.price * product.quantity * (1 - discount / 100);
+			const meta = document.createElement("span");
+			meta.className = "reviewer-cart-meta";
+			meta.textContent = `${formatCurrency(product.price)} × ${product.quantity} · Скидка: ${formatNumber(discount)}%`;
+			const total = document.createElement("span");
+			total.className = "reviewer-cart-sum";
+			total.textContent = `Итого: ${formatCurrency(sum)}`;
+			copy.append(title, meta, total);
+			button.append(image, copy);
+			row.append(button);
+			list.append(row);
+			subtotal += product.price * product.quantity;
+			discountedTotal += sum;
+			quantity += product.quantity;
+		}
+		const totals = document.createElement("dl");
+		totals.className = "reviewer-cart-totals";
+		for (const [label, value] of [
+			["Позиций / штук", `${Number.isSafeInteger(cart.totalProducts) ? cart.totalProducts : items.length} / ${Number.isSafeInteger(cart.totalQuantity) ? cart.totalQuantity : quantity}`],
+			["До скидок", formatCurrency(Number.isFinite(cart.total) ? cart.total : subtotal)],
+			["Со скидками", formatCurrency(Number.isFinite(cart.discountedTotal) ? cart.discountedTotal : discountedTotal)],
+		]) {
+			const term = document.createElement("dt");
+			term.textContent = label;
+			const description = document.createElement("dd");
+			description.textContent = value;
+			totals.append(term, description);
+		}
+		card.append(heading, list, totals);
+		return card;
 	}
 
 	function sortProducts(products) {
@@ -1109,7 +1250,24 @@
 	elements.retryCart.addEventListener("click", () => void loadCartProducts());
 	elements.checkout.addEventListener("click", () => void checkout());
 	elements.closeDialog.addEventListener("click", () => elements.dialog.close());
-	elements.closeReviewer.addEventListener("click", () => elements.reviewerDialog.close());
+	elements.closeReviewer.addEventListener("click", closeReviewer);
+	elements.reviewerDialog.addEventListener("cancel", (event) => {
+		event.preventDefault();
+		closeReviewer();
+	});
+	elements.reviewerDialog.addEventListener("close", () => {
+		if (!elements.reviewerDialog.open && state.reviewerController) state.reviewerController.abort();
+	});
+	elements.reviewerContent.addEventListener("click", (event) => {
+		if (!(event.target instanceof Element)) return;
+		const button = event.target.closest("button[data-reviewer-product-id]");
+		if (!button) return;
+		const id = Number(button.dataset.reviewerProductId);
+		if (!Number.isSafeInteger(id) || id <= 0) return;
+		closeReviewer();
+		void openProduct(id);
+		elements.closeDialog.focus();
+	});
 	elements.dialog.addEventListener("close", () => {
 		if (state.detailController) state.detailController.abort();
 	});
