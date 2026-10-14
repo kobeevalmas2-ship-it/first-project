@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<meta charset="UTF-8">
+<title>Проверка CRUD магазина</title>
+<style>body { font: 16px/1.5 monospace; } iframe { width: 100%; height: 500px; } pre { white-space: pre-wrap; }</style>
+<h1>Проверка CRUD магазина</h1>
+<pre id="result">RUNNING</pre>
+<iframe id="shop" title="Тестовый магазин"></iframe>
+<script>
+(async () => {
+	"use strict";
+	const result = document.getElementById("result");
+	const frame = document.getElementById("shop");
+	const keys = ["shop:products:v1", "shop:cart:v1"];
+	const saved = keys.map((key) => localStorage.getItem(key));
+	const checks = [];
+	let doc;
+	let win;
+	const fixture = Array.from({ length: 15 }, (_, index) => ({
+		id: index + 1, title: `Товар ${index + 1}`, description: "Описание товара",
+		brand: "Бренд", price: 10 + index, discountPercentage: 0, stock: 10,
+		rating: 4, category: "beauty", thumbnail: "", images: [], reviews: [], availabilityStatus: "In Stock",
+	}));
+	const assert = (condition, label) => {
+		if (!condition) throw new Error(label);
+		checks.push(label);
+	};
+	const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+	const $ = (selector) => doc.querySelector(selector);
+	const card = (id) => $(`[data-product-id="${id}"]`)?.closest(".product-card");
+	const edit = (id) => card(id).querySelector("[data-edit-product-id]").click();
+	const fill = (fields) => {
+		for (const [name, value] of Object.entries(fields)) $("#product-form").elements.namedItem(name).value = value;
+	};
+	const submit = () => $("#product-form").requestSubmit();
+	const search = async (query) => {
+		$("#search-input").value = query;
+		$("#shop-search").dispatchEvent(new win.Event("submit", { bubbles: true, cancelable: true }));
+		await tick();
+	};
+	const selectCategory = async (slug) => {
+		$("#category-select").value = slug;
+		$("#category-select").dispatchEvent(new win.Event("change", { bubbles: true }));
+		await tick();
+	};
+	async function mount(offline = false) {
+		const response = await fetch("../shop.html");
+		let html = await response.text();
+		const base = new URL("../", location.href).href;
+		const mock = `window.requests = []; window.fetch = async (url) => {
+			const path = new URL(url).pathname;
+			window.requests.push(path);
+			if (${offline} && path === '/products') throw new Error('Offline');
+			const products = ${JSON.stringify(fixture)};
+			let data;
+			if (path === '/products/categories') data = [{ slug: 'beauty', name: 'Beauty' }];
+			else if (path === '/products') data = { products, total: products.length };
+			else if (path.startsWith('/products/')) data = products.find(p => p.id === Number(path.split('/').pop()));
+			else if (path === '/carts/add') data = { id: 1 };
+			else throw new Error('Unexpected request: ' + url);
+			if (!data) throw new Error('Unknown product: ' + url);
+			return { ok: true, json: async () => data };
+		};`;
+		html = html.replace("<head>", `<head><base href="${base}"><script>${mock}<\/script>`);
+		const loaded = new Promise((resolve) => { frame.onload = resolve; });
+		frame.srcdoc = html;
+		await loaded;
+		doc = frame.contentDocument;
+		win = frame.contentWindow;
+		await tick();
+	}
+	try {
+		keys.forEach((key) => localStorage.removeItem(key));
+		await mount();
+		assert(doc.querySelectorAll(".product-card").length === 12, "Первая страница: 12 товаров");
+		$("#show-more").click();
+		assert(doc.querySelectorAll(".product-card").length === 15, "Пагинация: все 15 товаров без повторов");
+		$("#create-product").click();
+		fill({ title: "Мой новый товар", description: "Описание", price: 30, stock: 5, category: "custom", discountPercentage: 10 });
+		submit();
+		let records = JSON.parse(localStorage.getItem(keys[0])).records;
+		const createdId = records[0].id;
+		assert(!$("#editor-dialog").open && records.length === 1, "Создание и сохранение товара");
+		await search("Мой новый");
+		assert(card(createdId) && doc.querySelectorAll(".product-card").length === 1, "Поиск созданного товара");
+		await selectCategory("custom");
+		assert(card(createdId), "Новая категория доступна в фильтре");
+		card(createdId).querySelector("[data-product-id]").click();
+		await tick();
+		assert($("#dialog-title").textContent === "Мой новый товар", "Просмотр созданного товара без запроса к API");
+		$("#close-dialog").click();
+		card(createdId).querySelector("[data-add-product-id]").click();
+		edit(createdId);
+		fill({ title: "Изменённый товар", price: 50, discountPercentage: 0 });
+		submit();
+		assert($("#cart-total").textContent.includes("50"), "Редактирование пересчитывает сумму корзины");
+		await search("");
+		assert(card(createdId).querySelector(".product-title").textContent === "Изменённый товар", "Обновлённая карточка");
+		await selectCategory("");
+		card(1).querySelector("[data-add-product-id]").click();
+		edit(1);
+		fill({ title: "Обновлённый API товар", category: "custom", price: 70 });
+		submit();
+		assert($("#cart-total").textContent.includes("120"), "Изменение исходного товара обновляет корзину");
+		await mount();
+		assert(card(createdId) && card(1).querySelector(".product-title").textContent === "Обновлённый API товар", "Изменения переживают перезагрузку страницы");
+		assert($("#cart-total").textContent.includes("120"), "Корзина восстанавливает локальные товары и цены");
+		assert(!$("#checkout-button").disabled && $("#retry-cart").hidden, "Восстановленная корзина готова к оформлению заказа");
+		edit(createdId);
+		const originalSetItem = win.Storage.prototype.setItem;
+		win.Storage.prototype.setItem = () => { throw new Error("Quota exceeded"); };
+		fill({ title: "Не должно сохраниться", price: 999 });
+		submit();
+		assert(!$("#editor-error").hidden && $("#editor-dialog").open, "Ошибка хранилища показана в форме");
+		assert(card(createdId).querySelector(".product-title").textContent === "Изменённый товар", "Ошибка сохранения не меняет каталог");
+		win.Storage.prototype.setItem = originalSetItem;
+		$("#cancel-editor").click();
+		$("#checkout-button").click();
+		await tick();
+		assert($("#cart-count").textContent === "0" && !win.requests.includes("/carts/add"), "Локальные товары оформляются без неизвестных API идентификаторов");
+		card(createdId).querySelector("[data-add-product-id]").click();
+		card(1).querySelector("[data-add-product-id]").click();
+		card(createdId).querySelector("[data-delete-product-id]").click();
+		$("#cancel-delete").click();
+		assert(card(createdId), "Отмена удаления сохраняет товар");
+		card(createdId).querySelector("[data-delete-product-id]").click();
+		$("#confirm-delete").click();
+		assert(!card(createdId) && $("#cart-count").textContent === "1", "Удаление убирает товар из каталога и корзины");
+		card(1).querySelector("[data-delete-product-id]").click();
+		$("#confirm-delete").click();
+		await mount();
+		assert(!card(createdId) && !card(1) && $("#cart-count").textContent === "0", "Удалённые товары не возвращаются после перезагрузки");
+		card(2).querySelector("[data-add-product-id]").click();
+		$("#checkout-button").click();
+		await tick();
+		assert(win.requests.includes("/carts/add") && $("#cart-count").textContent === "0", "Заказ исходных товаров использует API корзины");
+		$("#create-product").click();
+		fill({ title: "Офлайн товар", description: "Описание", price: 20, stock: 0, category: "offline", discountPercentage: 0 });
+		submit();
+		records = JSON.parse(localStorage.getItem(keys[0])).records;
+		const offlineId = records[0].id;
+		assert(card(offlineId).querySelector("[data-add-product-id]").disabled, "Нулевой остаток отключает добавление в корзину");
+		const store = new win.ShopProducts(localStorage, (value) => value && Number.isSafeInteger(value.id));
+		for (let index = 0; index < 12; index += 1) store.create({ ...fixture[0], title: `Офлайн ${index}` });
+		assert(new Set(store.list().map((product) => product.id)).size === 13, "Быстрое создание выдаёт уникальные идентификаторы");
+		await mount(true);
+		assert(card(offlineId) && !$("#catalog-error").hidden, "Локальные товары доступны при ошибке API");
+		$("#show-more").click();
+		assert(doc.querySelectorAll(".product-card").length === 13, "Пагинация локального каталога при ошибке API");
+		localStorage.setItem(keys[0], "broken json");
+		await mount();
+		assert($("#create-product").disabled && $("#management-status").textContent, "Повреждённое хранилище защищено от перезаписи");
+		result.textContent = `PASS: ${checks.length} проверок\n` + checks.join("\n");
+	} catch (error) {
+		result.textContent = `FAIL после ${checks.length} проверок: ${error.stack}\n` + checks.join("\n");
+	} finally {
+		keys.forEach((key, index) => saved[index] === null ? localStorage.removeItem(key) : localStorage.setItem(key, saved[index]));
+	}
+})();
+</script>
+</html>

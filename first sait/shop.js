@@ -30,6 +30,17 @@
 		dialog: document.getElementById("product-dialog"),
 		closeDialog: document.getElementById("close-dialog"),
 		dialogContent: document.getElementById("dialog-content"),
+		createProduct: document.getElementById("create-product"),
+		managementStatus: document.getElementById("management-status"),
+		editor: document.getElementById("editor-dialog"),
+		editorTitle: document.getElementById("editor-title"),
+		form: document.getElementById("product-form"),
+		editorError: document.getElementById("editor-error"),
+		categoryList: document.getElementById("product-categories"),
+		deleteDialog: document.getElementById("delete-dialog"),
+		deleteDescription: document.getElementById("delete-description"),
+		deleteError: document.getElementById("delete-error"),
+		confirmDelete: document.getElementById("confirm-delete"),
 	};
 
 	const state = {
@@ -51,8 +62,16 @@
 		cartStorageError: false,
 		checkoutLoading: false,
 		productsById: new Map(),
-		comboResults: null,
+		catalogProducts: null,
+		categories: new Map(),
+		editingId: null,
+		deletingId: null,
 	};
+
+	const products = new window.ShopProducts({
+		getItem: (key) => localStorage.getItem(key),
+		setItem: (key, value) => localStorage.setItem(key, value),
+	}, isProduct);
 
 	const api = {
 		async request(path, options = {}) {
@@ -137,7 +156,7 @@
 		},
 
 		add(product) {
-			if (state.checkoutLoading) return;
+			if (state.checkoutLoading || product.stock === 0 || products.deleted.has(product.id)) return;
 			const found = this.items.find((item) => item.id === product.id);
 			if (found) {
 				if (found.quantity >= 99) {
@@ -205,7 +224,7 @@
 			elements.count.textContent = state.total
 				? `${state.products.length} из ${state.total} товаров`
 				: state.loading ? "Загружаем каталог…" : "";
-			elements.showMore.hidden = state.loading || state.error ||
+			elements.showMore.hidden = state.loading ||
 				state.products.length === 0 || state.products.length >= state.total;
 			elements.showMore.disabled = state.loadingMore;
 		},
@@ -259,8 +278,8 @@
 			add.type = "button";
 			add.dataset.addProductId = String(product.id);
 			add.textContent = "В корзину";
-			add.disabled = state.checkoutLoading;
-			item.append(open, add);
+			add.disabled = state.checkoutLoading || product.stock === 0;
+			item.append(open, add, managementActions(product));
 			return item;
 		},
 
@@ -396,8 +415,8 @@
 			add.type = "button";
 			add.dataset.addProductId = String(product.id);
 			add.textContent = "В корзину";
-			add.disabled = state.checkoutLoading;
-			copy.append(heading, brand, price, category, rating, status, description, add);
+			add.disabled = state.checkoutLoading || product.stock === 0;
+			copy.append(heading, brand, price, category, rating, status, description, add, managementActions(product));
 			const reviews = createReviews(product.reviews);
 			copy.append(reviews);
 			layout.append(gallery, copy);
@@ -426,8 +445,143 @@
 	}
 
 	function cacheProduct(product) {
-		state.productsById.set(product.id, product);
-		return product;
+		const current = products.read(product.id, product);
+		if (current) state.productsById.set(current.id, current);
+		else state.productsById.delete(product.id);
+		return current;
+	}
+
+	function managementActions(product) {
+		const actions = document.createElement("div");
+		actions.className = "product-management-actions";
+		for (const [action, label] of [["edit", "Изменить"], ["delete", "Удалить"]]) {
+			const button = document.createElement("button");
+			button.type = "button";
+			button.className = "text-button";
+			button.dataset[`${action}ProductId`] = String(product.id);
+			button.textContent = label;
+			button.setAttribute("aria-label", `${label} товар: ${product.title}`);
+			button.disabled = state.checkoutLoading || Boolean(products.error);
+			actions.append(button);
+		}
+		return actions;
+	}
+
+	function refreshCategories() {
+		const selected = state.category;
+		const categories = new Map(state.categories);
+		for (const product of products.list(state.catalogProducts || [])) {
+			if (!categories.has(product.category)) categories.set(product.category, categoryName(product.category));
+		}
+		elements.category.replaceChildren(new Option("Все товары", ""));
+		elements.categoryList.replaceChildren();
+		for (const [slug, name] of categories) {
+			elements.category.append(new Option(name, slug));
+			const suggestion = new Option(name, slug);
+			elements.categoryList.append(suggestion);
+		}
+		if (selected && !categories.has(selected)) elements.category.append(new Option(categoryName(selected), selected));
+		elements.category.value = selected;
+	}
+
+	function refreshCatalog(reset = true) {
+		const query = state.query.trim().toLocaleLowerCase("ru");
+		const filtered = sortProducts(products.list(state.catalogProducts || []).filter((product) => {
+			if (state.category && product.category !== state.category) return false;
+			return !query || [product.title, product.description, product.brand || "", categoryName(product.category)]
+				.some((value) => value.toLocaleLowerCase("ru").includes(query));
+		}));
+		state.skip = reset ? LIMIT : state.skip + LIMIT;
+		state.products = filtered.slice(0, state.skip);
+		state.total = filtered.length;
+		filtered.forEach(cacheProduct);
+		render.catalog();
+	}
+
+	function openEditor(id = null) {
+		if (state.checkoutLoading || products.error) return;
+		const product = id === null ? null : products.read(id, state.productsById.get(id));
+		if (id !== null && !product) return;
+		state.editingId = id;
+		elements.form.reset();
+		elements.editorTitle.textContent = product ? "Изменить товар" : "Добавить товар";
+		elements.editorError.hidden = true;
+		const defaults = product || { stock: 1, discountPercentage: 0, category: state.category };
+		for (const name of ["title", "brand", "price", "stock", "category", "discountPercentage", "thumbnail", "description"]) {
+			elements.form.elements.namedItem(name).value = defaults[name] ?? "";
+		}
+		if (elements.dialog.open) elements.dialog.close();
+		elements.editor.showModal();
+	}
+
+	function saveProduct(event) {
+		event.preventDefault();
+		if (state.checkoutLoading) return;
+		elements.editorError.hidden = true;
+		try {
+			const data = new FormData(elements.form);
+			const title = String(data.get("title")).trim();
+			const description = String(data.get("description")).trim();
+			const category = String(data.get("category")).trim();
+			const thumbnail = String(data.get("thumbnail")).trim();
+			const price = Number(data.get("price"));
+			const stock = Number(data.get("stock"));
+			const discountPercentage = Number(data.get("discountPercentage"));
+			if (!title || !description || !category || !Number.isFinite(price) || price <= 0 || price > 100000000 ||
+				!Number.isSafeInteger(stock) || stock < 0 || stock > 1000000 ||
+				!Number.isFinite(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
+				throw new Error("Заполните название, описание и категорию; укажите положительную цену, целый остаток и скидку от 0 до 100%.");
+			}
+			if (thumbnail && !/^https:\/\//i.test(thumbnail)) throw new Error("Ссылка на изображение должна начинаться с https://.");
+			const previous = state.editingId === null ? null : products.read(state.editingId, state.productsById.get(state.editingId));
+			const fields = {
+				title, description, category, thumbnail, price, stock, discountPercentage,
+				brand: String(data.get("brand")).trim(),
+				rating: previous ? previous.rating : 0,
+				images: previous && previous.thumbnail === thumbnail ? previous.images : thumbnail ? [thumbnail] : [],
+				availabilityStatus: stock === 0 ? "Out of Stock" : stock <= 5 ? "Low Stock" : "In Stock",
+			};
+			const product = previous
+				? products.update(state.editingId, fields, previous)
+				: products.create({ ...fields, reviews: [] }, state.catalogProducts || []);
+			cacheProduct(product);
+			refreshCategories();
+			refreshCatalog();
+			render.cart();
+			elements.editor.close();
+			elements.managementStatus.textContent = `Товар «${product.title}» ${previous ? "изменён" : "добавлен"}. Изменения сохранены в этом браузере.`;
+		} catch (error) {
+			elements.editorError.textContent = error.message;
+			elements.editorError.hidden = false;
+		}
+	}
+
+	function requestDelete(id) {
+		if (state.checkoutLoading || products.error) return;
+		const product = products.read(id, state.productsById.get(id));
+		if (!product) return;
+		state.deletingId = id;
+		elements.deleteDescription.textContent = `«${product.title}» будет удалён из каталога и корзины в этом браузере.`;
+		elements.deleteError.hidden = true;
+		if (elements.dialog.open) elements.dialog.close();
+		elements.deleteDialog.showModal();
+	}
+
+	function deleteProduct() {
+		if (state.deletingId === null || state.checkoutLoading) return;
+		try {
+			const id = state.deletingId;
+			products.remove(id);
+			state.productsById.delete(id);
+			cart.remove(id);
+			refreshCategories();
+			refreshCatalog();
+			elements.deleteDialog.close();
+			elements.managementStatus.textContent = "Товар удалён из каталога и корзины. Изменения сохранены в этом браузере.";
+		} catch (error) {
+			elements.deleteError.textContent = error.message;
+			elements.deleteError.hidden = false;
+		}
 	}
 
 	function createImage(url, alt, className) {
@@ -580,15 +734,6 @@
 		return section;
 	}
 
-	function productQuery() {
-		const params = new URLSearchParams({ limit: String(LIMIT), skip: String(state.skip) });
-		if (state.sortBy) {
-			params.set("sortBy", state.sortBy);
-			params.set("order", state.order);
-		}
-		return params.toString();
-	}
-
 	function sortProducts(products) {
 		const sorted = [...products];
 		if (!state.sortBy) return sorted;
@@ -610,22 +755,23 @@
 			if (!Array.isArray(result)) throw new Error("Сервер вернул неверный список категорий.");
 			for (const category of result) {
 				if (!category || typeof category.slug !== "string" || typeof category.name !== "string") continue;
-				const option = document.createElement("option");
-				option.value = category.slug;
-				option.textContent = categoryName(category.slug, category.name);
-				elements.category.append(option);
+				state.categories.set(category.slug, categoryName(category.slug, category.name));
 			}
+			refreshCategories();
 		} catch {
 			elements.status.textContent = "Не удалось загрузить категории; каталог и поиск остаются доступны.";
 		}
 	}
 
 	async function loadCatalog(reset = true) {
+		if (state.catalogProducts !== null || (!reset && state.error)) {
+			refreshCatalog(reset);
+			return;
+		}
 		if (state.controller) state.controller.abort();
 		const controller = new AbortController();
 		state.controller = controller;
 		const requestId = ++state.requestId;
-		const query = state.query.trim();
 		state.error = false;
 		state.loading = reset;
 		state.loadingMore = !reset;
@@ -633,56 +779,29 @@
 			state.skip = 0;
 			state.products = [];
 			state.total = 0;
-			state.comboResults = null;
 		}
 		render.catalog();
 
 		try {
-			let data;
-			let shownProducts;
-			if (query && state.category) {
-				if (!state.comboResults) {
-					const params = new URLSearchParams({ q: query, limit: "0", skip: "0" });
-					const searchData = await api.request(`/products/search?${params}`, { signal: controller.signal });
-					if (!Array.isArray(searchData.products) || !Number.isFinite(searchData.total)) {
-						throw new Error("Сервер вернул неверный список товаров.");
-					}
-					state.comboResults = sortProducts(searchData.products.filter((product) =>
-						isProduct(product) && product.category === state.category
-					));
-				}
-				shownProducts = state.comboResults.slice(state.skip, state.skip + LIMIT);
-				data = { products: shownProducts, total: state.comboResults.length };
-			} else {
-				let path = "/products";
-				const params = new URLSearchParams(productQuery());
-				if (query) {
-					path = "/products/search";
-					params.set("q", query);
-				} else if (state.category) {
-					path = `/products/category/${encodeURIComponent(state.category)}`;
-				}
-				data = await api.request(`${path}?${params}`, { signal: controller.signal });
-				if (!Array.isArray(data.products) || !Number.isFinite(data.total)) {
-					throw new Error("Сервер вернул неверный список товаров.");
-				}
-				shownProducts = data.products.filter(isProduct);
+			const data = await api.request("/products?limit=0", { signal: controller.signal });
+			if (!Array.isArray(data.products) || !Number.isFinite(data.total)) {
+				throw new Error("Сервер вернул неверный список товаров.");
 			}
-
 			if (requestId !== state.requestId) return;
-			shownProducts.forEach(cacheProduct);
-			if (reset) state.products = shownProducts;
-			else state.products = state.products.concat(shownProducts);
-			state.total = data.total;
-			state.skip = reset ? shownProducts.length : state.skip + shownProducts.length;
+			state.catalogProducts = data.products.filter(isProduct);
+			state.catalogProducts.forEach(cacheProduct);
 			state.loading = false;
 			state.loadingMore = false;
 			elements.status.textContent = "";
+			refreshCategories();
+			refreshCatalog(reset);
+			render.cart();
 		} catch (error) {
 			if (requestId !== state.requestId || controller.signal.aborted) return;
 			state.loading = false;
 			state.loadingMore = false;
 			state.error = true;
+			refreshCatalog(reset);
 			elements.status.textContent = error instanceof Error
 				? `Ошибка загрузки: ${error.message}`
 				: "Ошибка загрузки каталога.";
@@ -696,9 +815,15 @@
 		state.cartLoading = true;
 		render.cart();
 		try {
+			const retained = cart.items.filter((item) => !products.deleted.has(item.id));
+			if (retained.length !== cart.items.length) {
+				cart.items = retained;
+				cart.persist();
+			}
+			products.records.forEach(cacheProduct);
 			const missing = cart.items.filter((item) => !state.productsById.has(item.id));
-			const products = await Promise.all(missing.map((item) => api.product(item.id)));
-			for (const product of products) {
+			const cartProducts = await Promise.all(missing.map((item) => api.product(item.id)));
+			for (const product of cartProducts) {
 				if (!isProduct(product)) throw new Error("Сервер вернул неверные данные товара в корзине.");
 				cacheProduct(product);
 			}
@@ -728,13 +853,14 @@
 		elements.dialogContent.append(loading);
 		if (!elements.dialog.open) elements.dialog.showModal();
 		try {
-			const product = await api.product(id, controller.signal);
+			const product = products.read(id, state.productsById.get(id)) ||
+				(products.deleted.has(id) ? null : await api.product(id, controller.signal));
 			if (!isProduct(product) || controller.signal.aborted) {
 				if (!controller.signal.aborted) throw new Error("Сервер вернул неверные данные товара.");
 				return;
 			}
 			cacheProduct(product);
-			render.detail(product);
+			render.detail(products.read(id, product));
 			render.cart();
 		} catch (error) {
 			if (controller.signal.aborted) return;
@@ -760,7 +886,9 @@
 		render.cart();
 		render.catalog();
 		try {
-			await api.request("/carts/add", {
+			const hasLocalChanges = cart.items.some((item) => products.records.has(item.id));
+			// The demo API cannot price browser-created or edited products.
+			if (!hasLocalChanges) await api.request("/carts/add", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
@@ -769,7 +897,9 @@
 				}),
 			});
 			cart.clear();
-			elements.orderStatus.textContent = "Заказ оформлен. Сервер DummyJSON демонстрационный и ничего не сохраняет.";
+			elements.orderStatus.textContent = hasLocalChanges
+				? "Демонстрационный заказ с изменёнными товарами оформлен в браузере. Заказ не отправляется и не сохраняется."
+				: "Заказ оформлен. Сервер DummyJSON демонстрационный и ничего не сохраняет.";
 			state.cartError = false;
 			await loadCartProducts();
 		} catch (error) {
@@ -781,6 +911,25 @@
 			render.cart();
 			render.catalog();
 		}
+	}
+
+	elements.createProduct.addEventListener("click", () => openEditor());
+	elements.form.addEventListener("submit", saveProduct);
+	for (const id of ["close-editor", "cancel-editor"]) {
+		document.getElementById(id).addEventListener("click", () => elements.editor.close());
+	}
+	elements.editor.addEventListener("close", () => { if (!elements.editor.open) state.editingId = null; });
+	elements.confirmDelete.addEventListener("click", deleteProduct);
+	document.getElementById("cancel-delete").addEventListener("click", () => elements.deleteDialog.close());
+	elements.deleteDialog.addEventListener("close", () => { if (!elements.deleteDialog.open) state.deletingId = null; });
+	for (const container of [elements.grid, elements.dialogContent]) {
+		container.addEventListener("click", (event) => {
+			if (!(event.target instanceof Element)) return;
+			const edit = event.target.closest("button[data-edit-product-id]");
+			const remove = event.target.closest("button[data-delete-product-id]");
+			if (edit) openEditor(Number(edit.dataset.editProductId));
+			if (remove) requestDelete(Number(remove.dataset.deleteProductId));
+		});
 	}
 
 	let searchTimer = 0;
@@ -856,7 +1005,11 @@
 		if (button.dataset.removeProductId) cart.remove(id);
 	});
 
+	elements.createProduct.disabled = Boolean(products.error);
+	elements.managementStatus.textContent = products.error;
 	cart.restore();
+	products.records.forEach(cacheProduct);
+	refreshCategories();
 	render.catalog();
 	void loadCategories();
 	void loadCatalog();

@@ -8,6 +8,7 @@
 	<script src="theme.js"></script>
 	<link rel="stylesheet" href="style.css">
 	<link rel="stylesheet" href="shop.css">
+	<script src="shop-products.js" defer></script>
 	<script src="shop.js" defer></script>
 </head>
 <body>
@@ -46,6 +47,11 @@
 			</label>
 		</section>
 
+		<div class="product-management">
+			<button id="create-product" class="shop-button" type="button">Добавить товар</button>
+			<p>Создавайте, изменяйте и удаляйте товары. Изменения сохраняются в этом браузере.</p>
+		</div>
+		<p id="management-status" class="shop-status" role="status" aria-live="polite" aria-atomic="true"></p>
 		<p id="shop-status" class="shop-status" role="status" aria-live="polite" aria-atomic="true"></p>
 
 		<div class="shop-layout">
@@ -94,6 +100,39 @@
 			<button id="close-dialog" class="dialog-close" type="button" aria-label="Закрыть окно">Закрыть <span aria-hidden="true">×</span></button>
 		</div>
 		<div id="dialog-content" class="dialog-content" aria-live="polite"></div>
+	</dialog>
+
+	<dialog id="editor-dialog" class="product-dialog editor-dialog" aria-labelledby="editor-title">
+		<div class="dialog-top">
+			<h2 id="editor-title">Добавить товар</h2>
+			<button id="close-editor" class="dialog-close" type="button" aria-label="Закрыть форму товара">Закрыть ×</button>
+		</div>
+		<form id="product-form" class="product-form">
+			<label for="product-title">Название<input id="product-title" name="title" required maxlength="150" autocomplete="off"></label>
+			<label for="product-brand">Бренд<input id="product-brand" name="brand" maxlength="100" autocomplete="off"></label>
+			<label for="product-price">Цена, $<input id="product-price" name="price" type="number" min="0.01" max="100000000" step="0.01" required></label>
+			<label for="product-stock">Остаток, шт.<input id="product-stock" name="stock" type="number" min="0" max="1000000" step="1" required></label>
+			<label for="product-category">Категория<input id="product-category" name="category" list="product-categories" maxlength="100" required autocomplete="off"></label>
+			<datalist id="product-categories"></datalist>
+			<label for="product-discount">Скидка, %<input id="product-discount" name="discountPercentage" type="number" min="0" max="100" step="0.01" required></label>
+			<label class="product-form__wide" for="product-thumbnail">Ссылка на изображение (HTTPS, необязательно)<input id="product-thumbnail" name="thumbnail" type="url" maxlength="2000" placeholder="https://…"></label>
+			<label class="product-form__wide" for="product-description">Описание<textarea id="product-description" name="description" rows="4" maxlength="5000" required></textarea></label>
+			<p id="editor-error" class="editor-error product-form__wide" role="alert" hidden></p>
+			<div class="product-form__actions product-form__wide">
+				<button id="save-product" class="shop-button" type="submit">Сохранить</button>
+				<button id="cancel-editor" class="shop-button shop-button--quiet" type="button">Отмена</button>
+			</div>
+		</form>
+	</dialog>
+
+	<dialog id="delete-dialog" class="product-dialog delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-description">
+		<h2 id="delete-title">Удалить товар?</h2>
+		<p id="delete-description"></p>
+		<p id="delete-error" class="editor-error" role="alert" hidden></p>
+		<div class="product-form__actions">
+			<button id="confirm-delete" class="shop-button" type="button">Удалить</button>
+			<button id="cancel-delete" class="shop-button shop-button--quiet" type="button">Отмена</button>
+		</div>
 	</dialog>
 </body>
 </html>
