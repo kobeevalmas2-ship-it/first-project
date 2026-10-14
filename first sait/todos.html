@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Список задач</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="todos.css">
+  <script src="todos.js" defer></script>
+</head>
+<body>
+  <main class="todos-page">
+    <div class="theme-tools">
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" lang="kk">Қараңғы тақырып</button>
+    </div>
+    <div class="nr-todo" id="nrTodo">
+      <header class="nr-top">
+        <div>
+          <a class="back-link" href="sait.html">← На главную</a>
+          <p class="eyebrow">ИНСТРУМЕНТ 01 / ПЛАНИРОВАНИЕ</p>
+          <h1 class="nr-title">Список задач</h1>
+          <p class="nr-intro">Ваши дела сохраняются в этом браузере. Начальный список загружается из DummyJSON.</p>
+        </div>
+      </header>
+
+      <section class="nr-progress" aria-label="Прогресс выполнения задач">
+        <div class="nr-progress__heading">
+          <h2>Прогресс</h2>
+          <span id="nrPct">0%</span>
+        </div>
+        <div class="nr-progress__track" id="nrTrack" role="progressbar" aria-label="Выполненные задачи"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span class="nr-progress__fill" id="nrFill"></span>
+        </div>
+        <div class="nr-meta"><span id="nrCount">Загрузка…</span></div>
+      </section>
+
+      <form class="nr-add" id="nrForm" autocomplete="off">
+        <label class="nr-sr-only" for="nrInput">Текст новой задачи</label>
+        <input type="text" id="nrInput" maxlength="200" placeholder="Например, подготовить презентацию" required>
+        <button class="nr-btn" type="submit">Добавить задачу</button>
+      </form>
+      <p class="nr-msg" id="nrMsg" role="status" aria-live="polite"></p>
+
+      <section class="nr-tools" aria-label="Настройки списка задач">
+        <div class="nr-filters" id="nrFilters" aria-label="Фильтр задач">
+          <button type="button" data-f="all" aria-pressed="true">Все</button>
+          <button type="button" data-f="active" aria-pressed="false">Активные</button>
+          <button type="button" data-f="done" aria-pressed="false">Выполненные</button>
+        </div>
+        <div class="nr-side">
+          <button type="button" class="nr-link" id="nrClear" disabled>Очистить выполненные</button>
+          <label class="nr-limit">Задач из DummyJSON
+            <select id="nrLimit" aria-label="Сколько задач загрузить из DummyJSON">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label>
+          <button type="button" class="nr-retry" id="nrRetry" hidden>Повторить загрузку</button>
+        </div>
+      </section>
+
+      <ul class="nr-list" id="nrList" aria-label="Список задач" hidden></ul>
+      <div class="nr-loading" id="nrLoading" role="status">Подключение к DummyJSON…</div>
+      <div class="nr-empty" id="nrEmpty" hidden></div>
+    </div>
+  </main>
+</body>
+</html>

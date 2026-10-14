@@ -1,40 +1,79 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Участники</title>
-	<script src="theme.js"></script>
-	<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Команда и инструменты проекта</title>
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-	<main class="members-page">
-		<div class="theme-tools">
-			<button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" lang="kk">Қараңғы тақырып</button>
-		</div>
-		<p class="eyebrow">НАША КОМАНДА</p>
-		<h1>Участники</h1>
-		<p class="subtitle">Нажмите на фотографию, чтобы открыть резюме участника.</p>
-		<p class="task-navigation"><a class="task-button" href="table.html" lang="kk">3-тапсырма</a></p>
+    <main class="members-page">
+        <div class="theme-tools">
+            <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false" lang="kk">Қараңғы тақырып</button>
+        </div>
 
-		<section class="members" aria-label="Участники проекта">
-			<a class="member-card" href="resume1.html" data-page="resume1.html">
-				<img src="photo1.jpeg" alt="Фотография первого участника">
-				<span class="member-card__info">
-					<strong>Первый участник</strong>
-					<small>Открыть резюме →</small>
-				</span>
-			</a>
+        <header class="home-header">
+            <p class="eyebrow">НАША КОМАНДА</p>
+            <h1>Люди и идеи<br>в действии.</h1>
+            <p class="subtitle">Познакомьтесь с участниками команды и откройте интерактивные инструменты проекта.</p>
+        </header>
 
-			<a class="member-card" href="resume2.html" data-page="resume2.html">
-				<img src="photo2.jpeg" alt="Фотография второго участника">
-				<span class="member-card__info">
-					<strong>Второй участник</strong>
-					<small>Открыть резюме →</small>
-				</span>
-			</a>
-		</section>
-	</main>
-	<script src="script.js"></script>
+        <section class="home-section" aria-labelledby="members-heading">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">01 / КОМАНДА</p>
+                    <h2 id="members-heading">Участники</h2>
+                </div>
+                <p>Выберите карточку, чтобы посмотреть резюме.</p>
+            </div>
+            <div class="members" aria-label="Участники проекта">
+                <a class="member-card" href="resume1.html" data-page="resume1.html">
+                    <img src="photo1.jpeg" alt="Фотография Асылбека Мықтыбека">
+                    <span class="member-card__info">
+                        <strong>Мықтыбек Асылбек</strong>
+                        <small>Открыть резюме ➔</small>
+                    </span>
+                </a>
+
+                <a class="member-card" href="resume2.html" data-page="resume2.html">
+                    <img src="photo2.jpeg" alt="Фотография Алмаса Кобеева">
+                    <span class="member-card__info">
+                        <strong>Кобеев Алмас</strong>
+                        <small>Открыть резюме ➔</small>
+                    </span>
+                </a>
+            </div>
+        </section>
+
+        <section class="home-section tools-section" aria-labelledby="tools-heading">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">02 / ИНСТРУМЕНТЫ</p>
+                    <h2 id="tools-heading">Попробуйте сами</h2>
+                </div>
+                <p>Небольшие интерактивные приложения команды.</p>
+            </div>
+            <div class="tools-grid">
+                <a class="tool-card" href="todos.html">
+                    <span class="tool-card__number">01</span>
+                    <span class="tool-card__content">
+                        <strong>Список задач</strong>
+                        <small>Добавляйте дела, меняйте их статус и следите за прогрессом.</small>
+                        <span class="tool-card__link">Открыть инструмент <span aria-hidden="true">↗</span></span>
+                    </span>
+                </a>
+                <a class="tool-card" href="table.html">
+                    <span class="tool-card__number">02</span>
+                    <span class="tool-card__content">
+                        <strong>Интерактивная таблица</strong>
+                        <small>Создайте таблицу и раскрашивайте ячейки в четыре цвета.</small>
+                        <span class="tool-card__link">Открыть инструмент <span aria-hidden="true">↗</span></span>
+                    </span>
+                </a>
+            </div>
+        </section>
+    </main>
+    <script src="script.js"></script>
 </body>
 </html>

@@ -1,0 +1,389 @@
+.todos-page {
+	max-width: 900px;
+	margin: 0 auto;
+	padding: 40px 28px 88px;
+}
+
+.nr-todo {
+	--danger: #b91c1c;
+	padding-top: 22px;
+}
+
+:root[data-theme="dark"] .nr-todo {
+	--danger: #ff9090;
+}
+
+.nr-top {
+	margin: 0 0 30px;
+}
+
+.nr-top .back-link {
+	display: inline-block;
+	margin-bottom: 36px;
+}
+
+.nr-top .eyebrow {
+	margin: 0 0 12px;
+}
+
+.nr-title {
+	margin: 0;
+	font-size: clamp(42px, 8vw, 72px);
+	font-weight: 400;
+	line-height: 1;
+}
+
+.nr-intro {
+	max-width: 580px;
+	margin: 16px 0 0;
+	color: var(--muted);
+	font: 15px/1.7 Arial, sans-serif;
+}
+
+.nr-progress {
+	margin-bottom: 24px;
+	padding: 20px;
+	border: 1px solid var(--line);
+	background: var(--surface);
+}
+
+.nr-progress__heading,
+.nr-meta {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 12px;
+}
+
+.nr-progress__heading h2 {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 400;
+}
+
+.nr-progress__heading > span {
+	color: var(--accent);
+	font: 700 15px Arial, sans-serif;
+	font-variant-numeric: tabular-nums;
+}
+
+.nr-progress__track {
+	height: 9px;
+	margin: 14px 0 10px;
+	overflow: hidden;
+	background: var(--paper);
+}
+
+.nr-progress__fill {
+	display: block;
+	width: 0;
+	height: 100%;
+	background: var(--accent);
+	transition: width .2s ease;
+}
+
+.nr-meta {
+	color: var(--muted);
+	font: 13px/1.5 Arial, sans-serif;
+}
+
+.nr-add {
+	display: flex;
+	gap: 10px;
+}
+
+.nr-add input,
+.nr-limit select {
+	min-height: 46px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	color: var(--ink);
+	background: var(--surface);
+	font: 15px Arial, sans-serif;
+}
+
+.nr-add input {
+	flex: 1;
+	min-width: 0;
+	padding: 10px 14px;
+}
+
+.nr-add input::placeholder {
+	color: var(--muted);
+	opacity: .8;
+}
+
+.nr-add input:focus-visible,
+.nr-limit select:focus-visible,
+.nr-btn:focus-visible,
+.nr-filters button:focus-visible,
+.nr-link:focus-visible,
+.nr-retry:focus-visible,
+.nr-acts button:focus-visible,
+.nr-edit:focus-visible {
+	outline: 3px solid var(--accent);
+	outline-offset: 3px;
+}
+
+.nr-btn,
+.nr-retry {
+	min-height: 46px;
+	padding: 10px 18px;
+	border: 1px solid var(--button-bg);
+	border-radius: 6px;
+	color: var(--button-ink);
+	background: var(--button-bg);
+	font: 700 14px Arial, sans-serif;
+	cursor: pointer;
+	transition: background .15s, border-color .15s;
+}
+
+.nr-btn:hover,
+.nr-retry:hover {
+	border-color: var(--button-hover);
+	background: var(--button-hover);
+}
+
+.nr-msg {
+	min-height: 1.5em;
+	margin: 8px 0 14px;
+	color: var(--muted);
+	font: 13px/1.5 Arial, sans-serif;
+}
+
+.nr-msg.err {
+	color: var(--danger);
+}
+
+.nr-tools {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 14px;
+	margin: 12px 0 16px;
+	padding: 14px 0;
+	border-top: 1px solid var(--line);
+	border-bottom: 1px solid var(--line);
+}
+
+.nr-filters,
+.nr-side {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.nr-filters button {
+	min-height: 38px;
+	padding: 7px 12px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	color: var(--muted);
+	background: var(--surface);
+	font: 14px Arial, sans-serif;
+	cursor: pointer;
+}
+
+.nr-filters button[aria-pressed="true"] {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+
+.nr-limit {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--muted);
+	font: 13px Arial, sans-serif;
+}
+
+.nr-limit select {
+	min-height: 38px;
+	padding: 6px 10px;
+}
+
+.nr-link {
+	padding: 8px 0;
+	border: 0;
+	color: var(--accent);
+	background: none;
+	font: 700 13px Arial, sans-serif;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+
+.nr-link:disabled {
+	color: var(--muted);
+	cursor: default;
+	text-decoration: none;
+}
+
+.nr-retry {
+	min-height: 38px;
+	padding: 8px 12px;
+	border-color: var(--line);
+	color: var(--ink);
+	background: var(--surface);
+	font-size: 13px;
+}
+
+.nr-list {
+	display: grid;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.nr-item {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	min-height: 62px;
+	padding: 12px 14px;
+	border: 1px solid var(--line);
+	border-left: 3px solid var(--accent);
+	background: var(--surface);
+}
+
+.nr-item.done {
+	border-left-color: var(--line);
+}
+
+.nr-item label {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	flex: 1;
+	min-width: 0;
+	cursor: pointer;
+}
+
+.nr-item input[type="checkbox"] {
+	flex: none;
+	width: 18px;
+	height: 18px;
+	margin: 2px 0 0;
+	accent-color: var(--accent);
+	cursor: pointer;
+}
+
+.nr-text {
+	overflow-wrap: anywhere;
+	font: 15px/1.5 Arial, sans-serif;
+}
+
+.nr-item.done .nr-text {
+	color: var(--muted);
+	text-decoration: line-through;
+}
+
+.nr-edit {
+	flex: 1;
+	min-width: 0;
+	min-height: 40px;
+	padding: 8px 10px;
+	border: 1px solid var(--accent);
+	border-radius: 6px;
+	color: var(--ink);
+	background: var(--surface);
+	font: 15px Arial, sans-serif;
+}
+
+.nr-acts {
+	display: flex;
+	flex: none;
+	gap: 6px;
+}
+
+.nr-acts button {
+	min-height: 36px;
+	padding: 6px 10px;
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	color: var(--muted);
+	background: var(--surface);
+	font: 13px Arial, sans-serif;
+	cursor: pointer;
+	transition: border-color .15s, color .15s;
+}
+
+.nr-acts .edit:hover {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+
+.nr-acts .del:hover {
+	border-color: var(--danger);
+	color: var(--danger);
+}
+
+.nr-empty,
+.nr-loading {
+	padding: 28px 16px;
+	border: 1px dashed var(--line);
+	color: var(--muted);
+	font: 14px/1.6 Arial, sans-serif;
+	text-align: center;
+}
+
+.nr-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	clip-path: inset(50%);
+}
+
+.nr-todo [hidden] {
+	display: none !important;
+}
+
+@media (max-width: 650px) {
+	.todos-page {
+		padding: 32px 20px 64px;
+	}
+
+	.nr-top .back-link {
+		margin-bottom: 28px;
+	}
+
+	.nr-add {
+		flex-direction: column;
+	}
+
+	.nr-btn {
+		width: 100%;
+	}
+}
+
+@media (max-width: 480px) {
+	.nr-item {
+		align-items: flex-start;
+		flex-wrap: wrap;
+	}
+
+	.nr-acts {
+		margin-left: 30px;
+	}
+
+	.nr-tools,
+	.nr-side {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.nr-todo *,
+	.nr-todo *::before,
+	.nr-todo *::after {
+		scroll-behavior: auto !important;
+		transition: none !important;
+	}
+}
