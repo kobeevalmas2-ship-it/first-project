@@ -799,6 +799,129 @@
 	margin: 0;
 }
 
+.review-meta {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.reviewer-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 44px;
+	border: 0;
+	padding: 4px 0;
+	color: var(--accent-text);
+	background: transparent;
+	font: 700 13px/1.5 Arial, sans-serif;
+	text-align: left;
+	cursor: pointer;
+}
+
+.reviewer-button:hover {
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.reviewer-button:focus-visible {
+	outline: 3px solid var(--accent);
+	outline-offset: 3px;
+}
+
+.review-avatar {
+	width: 32px;
+	height: 32px;
+	object-fit: cover;
+	background: var(--paper);
+}
+
+.review-authors-status {
+	margin: 16px 0 0;
+	color: var(--muted);
+	font: 12px/1.6 Arial, sans-serif;
+}
+
+.reviewer-dialog {
+	width: min(620px, calc(100% - 32px));
+}
+
+.reviewer-dialog h2 {
+	margin: 12px 0 0;
+	font-size: clamp(24px, 5vw, 34px);
+	font-weight: 400;
+	overflow-wrap: anywhere;
+}
+
+.reviewer-identity {
+	display: grid;
+	grid-template-columns: 88px minmax(0, 1fr);
+	align-items: center;
+	gap: 20px;
+}
+
+.reviewer-photo,
+.reviewer-initials {
+	display: grid;
+	width: 88px;
+	height: 88px;
+	place-items: center;
+	object-fit: cover;
+	color: var(--ink);
+	background: var(--paper);
+	font: 30px Georgia, serif;
+}
+
+.reviewer-username {
+	margin: 0;
+	color: var(--accent-text);
+	font: 700 16px/1.5 Arial, sans-serif;
+	overflow-wrap: anywhere;
+}
+
+.reviewer-details {
+	display: grid;
+	grid-template-columns: minmax(80px, .4fr) minmax(0, 1fr);
+	gap: 12px 20px;
+	margin: 24px 0;
+	border-top: 1px solid var(--line);
+	padding-top: 20px;
+	font: 14px/1.6 Arial, sans-serif;
+}
+
+.reviewer-details dt {
+	color: var(--muted);
+}
+
+.reviewer-details dd {
+	margin: 0;
+	color: var(--ink);
+	overflow-wrap: anywhere;
+}
+
+@media (max-width: 420px) {
+	.reviewer-identity {
+		grid-template-columns: 64px minmax(0, 1fr);
+		gap: 12px;
+	}
+
+	.reviewer-photo,
+	.reviewer-initials {
+		width: 64px;
+		height: 64px;
+	}
+
+	.reviewer-details {
+		grid-template-columns: 1fr;
+		gap: 4px;
+	}
+
+	.reviewer-details dd {
+		margin-bottom: 10px;
+	}
+}
+
 @media (max-width: 1120px) {
 	.shop-layout {
 		grid-template-columns: minmax(0, 1fr) 270px;

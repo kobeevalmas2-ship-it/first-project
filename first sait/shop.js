@@ -30,6 +30,10 @@
 		dialog: document.getElementById("product-dialog"),
 		closeDialog: document.getElementById("close-dialog"),
 		dialogContent: document.getElementById("dialog-content"),
+		reviewerDialog: document.getElementById("reviewer-dialog"),
+		reviewerTitle: document.getElementById("reviewer-title"),
+		reviewerContent: document.getElementById("reviewer-content"),
+		closeReviewer: document.getElementById("close-reviewer"),
 		createProduct: document.getElementById("create-product"),
 		managementStatus: document.getElementById("management-status"),
 		editor: document.getElementById("editor-dialog"),
@@ -66,6 +70,10 @@
 		categories: new Map(),
 		editingId: null,
 		deletingId: null,
+		usersById: new Map(),
+		usersByEmail: new Map(),
+		usersLoaded: false,
+		usersPromise: null,
 	};
 
 	const products = new window.ShopProducts({
@@ -265,6 +273,8 @@
 			const ratingValue = document.createElement("strong");
 			ratingValue.textContent = formatNumber(product.rating);
 			rating.append(ratingValue, document.createTextNode(" / 5"));
+			const reviewCount = Array.isArray(product.reviews) ? product.reviews.filter((review) => review && typeof review.comment === "string").length : 0;
+			rating.append(document.createTextNode(` · Отзывы: ${reviewCount}`));
 			const prices = priceElements(product);
 			const stock = document.createElement("span");
 			stock.className = "product-stock";
@@ -709,29 +719,169 @@
 		const heading = document.createElement("h3");
 		heading.textContent = "Отзывы";
 		section.append(heading);
-		if (!Array.isArray(reviews) || reviews.length === 0) {
+		const validReviews = Array.isArray(reviews) ? reviews.filter((review) => review && typeof review.comment === "string") : [];
+		if (validReviews.length === 0) {
 			const empty = document.createElement("p");
 			empty.className = "dialog-empty";
 			empty.textContent = "Пока нет отзывов.";
 			section.append(empty);
 			return section;
 		}
-		for (const review of reviews.slice(0, 8)) {
-			if (!review || typeof review.comment !== "string") continue;
+		const authors = [];
+		for (const review of validReviews) {
 			const item = document.createElement("article");
 			item.className = "review";
 			const meta = document.createElement("p");
 			meta.className = "review-meta";
 			const reviewer = typeof review.reviewerName === "string" ? review.reviewerName : "Покупатель";
+			const author = document.createElement("span");
+			author.className = "review-author";
+			author.textContent = reviewer;
 			const rating = Number.isFinite(review.rating) ? ` · ★ ${formatNumber(review.rating)}` : "";
-			meta.textContent = `${reviewer}${rating}`;
+			meta.append(author, document.createTextNode(rating));
+			const date = typeof review.date === "string" ? new Date(review.date) : null;
+			if (date && Number.isFinite(date.getTime())) {
+				const time = document.createElement("time");
+				time.dateTime = date.toISOString();
+				time.textContent = ` · ${new Intl.DateTimeFormat("ru-RU").format(date)}`;
+				meta.append(time);
+			}
+			authors.push({ author, email: typeof review.reviewerEmail === "string" ? review.reviewerEmail.trim().toLowerCase() : "" });
 			const text = document.createElement("p");
 			text.className = "review-text";
 			text.textContent = review.comment;
 			item.append(meta, text);
 			section.append(item);
 		}
+		const status = document.createElement("p");
+		status.className = "review-authors-status";
+		status.setAttribute("role", "status");
+		status.setAttribute("aria-live", "polite");
+		section.append(status);
+		void connectReviewAuthors(section, authors, status, state.detailController?.signal);
 		return section;
+	}
+
+	async function loadReviewUsers() {
+		if (state.usersLoaded) return;
+		if (state.usersPromise) return state.usersPromise;
+		// Один список пользователей для всех товаров; отзывы связываются только по email.
+		const promise = api.request("/users?limit=0&select=id,firstName,lastName,email,image,username,age,phone,role,company,address")
+			.then((data) => {
+				if (!data || !Array.isArray(data.users)) throw new Error("Сервер вернул неверный список пользователей.");
+				const byId = new Map();
+				const byEmail = new Map();
+				for (const user of data.users) {
+					if (!user || !Number.isSafeInteger(user.id) || user.id <= 0 || typeof user.email !== "string" ||
+						typeof user.firstName !== "string" || typeof user.lastName !== "string") continue;
+					byId.set(user.id, user);
+					const email = user.email.trim().toLowerCase();
+					if (email) byEmail.set(email, byEmail.has(email) ? null : user);
+				}
+				state.usersById = byId;
+				state.usersByEmail = byEmail;
+				state.usersLoaded = true;
+			}).finally(() => {
+				if (state.usersPromise === promise) state.usersPromise = null;
+			});
+		state.usersPromise = promise;
+		return promise;
+	}
+
+	async function connectReviewAuthors(section, authors, status, signal) {
+		status.replaceChildren(document.createTextNode("Загружаем профили авторов…"));
+		section.setAttribute("aria-busy", "true");
+		try {
+			await loadReviewUsers();
+			if (!section.isConnected || signal?.aborted) return;
+			let linked = 0;
+			for (const { author, email } of authors) {
+				const user = state.usersByEmail.get(email);
+				if (!user) continue;
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "reviewer-button";
+				button.dataset.reviewerId = String(user.id);
+				const name = `${user.firstName} ${user.lastName}`.trim();
+				button.setAttribute("aria-label", `Открыть профиль автора: ${name}`);
+				button.title = "Открыть профиль пользователя";
+				if (safeImageUrl(user.image)) {
+					const image = createImage(user.image, "", "review-avatar");
+					image.width = 32;
+					image.height = 32;
+					image.addEventListener("error", () => image.remove(), { once: true });
+					button.append(image);
+				}
+				button.append(document.createTextNode(name));
+				author.replaceChildren(button);
+				linked += 1;
+			}
+			status.textContent = linked > 0
+				? "Нажмите на автора, чтобы открыть его профиль."
+				: "Профили авторов этих отзывов не найдены в DummyJSON.";
+		} catch (error) {
+			if (!section.isConnected || signal?.aborted) return;
+			const message = document.createElement("span");
+			message.textContent = `Не удалось загрузить профили авторов. ${error.message} `;
+			const retry = document.createElement("button");
+			retry.type = "button";
+			retry.className = "text-button retry-review-authors";
+			retry.textContent = "Повторить";
+			retry.addEventListener("click", () => void connectReviewAuthors(section, authors, status, signal));
+			status.replaceChildren(message, retry);
+		} finally {
+			section.setAttribute("aria-busy", "false");
+		}
+	}
+
+	function openReviewer(id) {
+		if (!Number.isSafeInteger(id) || id <= 0) return;
+		const user = state.usersById.get(id);
+		if (!user) return;
+		const name = `${user.firstName} ${user.lastName}`.trim();
+		elements.reviewerTitle.textContent = name;
+		elements.reviewerContent.replaceChildren();
+		const identity = document.createElement("div");
+		identity.className = "reviewer-identity";
+		const initials = document.createElement("span");
+		initials.className = "reviewer-initials";
+		initials.textContent = `${user.firstName.slice(0, 1)}${user.lastName.slice(0, 1)}`;
+		initials.setAttribute("aria-hidden", "true");
+		if (safeImageUrl(user.image)) {
+			const image = createImage(user.image, `Фото ${name}`, "reviewer-photo");
+			image.addEventListener("error", () => image.replaceWith(initials), { once: true });
+			identity.append(image);
+		} else identity.append(initials);
+		const summary = document.createElement("div");
+		const username = document.createElement("p");
+		username.className = "reviewer-username";
+		username.textContent = typeof user.username === "string" ? `@${user.username}` : `Пользователь № ${user.id}`;
+		const role = document.createElement("p");
+		role.className = "detail-meta";
+		role.textContent = ({ admin: "Администратор", moderator: "Модератор", user: "Пользователь" })[user.role] || "Пользователь";
+		summary.append(username, role);
+		identity.append(summary);
+		const details = document.createElement("dl");
+		details.className = "reviewer-details";
+		const address = user.address && typeof user.address === "object" ? user.address : {};
+		const company = user.company && typeof user.company === "object" ? user.company : {};
+		for (const [label, value] of [
+			["Возраст", Number.isFinite(user.age) ? `${user.age}` : ""],
+			["Email", user.email], ["Телефон", user.phone],
+			["Город", address.city], ["Страна", address.country],
+			["Компания", company.name], ["Должность", company.title],
+		]) {
+			const term = document.createElement("dt");
+			term.textContent = label;
+			const description = document.createElement("dd");
+			description.textContent = typeof value === "string" && value ? value : "Не указано";
+			details.append(term, description);
+		}
+		const note = document.createElement("p");
+		note.className = "demo-note";
+		note.textContent = "Демонстрационный профиль из DummyJSON. Данные вымышленные.";
+		elements.reviewerContent.append(identity, details, note);
+		if (!elements.reviewerDialog.open) elements.reviewerDialog.showModal();
 	}
 
 	function sortProducts(products) {
@@ -959,11 +1109,17 @@
 	elements.retryCart.addEventListener("click", () => void loadCartProducts());
 	elements.checkout.addEventListener("click", () => void checkout());
 	elements.closeDialog.addEventListener("click", () => elements.dialog.close());
+	elements.closeReviewer.addEventListener("click", () => elements.reviewerDialog.close());
 	elements.dialog.addEventListener("close", () => {
 		if (state.detailController) state.detailController.abort();
 	});
 	elements.dialogContent.addEventListener("click", (event) => {
 		if (!(event.target instanceof Element)) return;
+		const reviewer = event.target.closest("button[data-reviewer-id]");
+		if (reviewer) {
+			openReviewer(Number(reviewer.dataset.reviewerId));
+			return;
+		}
 		const retry = event.target.closest("button[data-retry-product-id]");
 		if (retry) {
 			void openProduct(Number(retry.dataset.retryProductId));

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<meta charset="UTF-8">
+<title>Проверка отзывов и профилей</title>
+<style>body { font: 16px/1.5 monospace; } iframe { width: 360px; height: 650px; border: 1px solid; } pre { white-space: pre-wrap; }</style>
+<h1>Проверка отзывов и профилей</h1>
+<pre id="result">RUNNING</pre>
+<iframe id="shop" title="Тестовый магазин"></iframe>
+<script>
+(async () => {
+	"use strict";
+	const frame = document.getElementById("shop");
+	const result = document.getElementById("result");
+	const live = new URLSearchParams(location.search).get("mode") === "live";
+	const checks = [];
+	const keys = ["shop:products:v1", "shop:cart:v1", "site-theme"];
+	const saved = keys.map((key) => localStorage.getItem(key));
+	const assert = (condition, label) => { if (!condition) throw new Error(label); checks.push(label); };
+	const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+	async function until(predicate) {
+		for (let index = 0; index < 300; index += 1) {
+			if (predicate()) return;
+			await new Promise((resolve) => setTimeout(resolve, live ? 50 : 0));
+		}
+		throw new Error("Ожидание загрузки истекло");
+	}
+	try {
+		keys.forEach((key) => localStorage.removeItem(key));
+		const response = await fetch("../shop.html");
+		let html = await response.text();
+		const base = new URL("../", location.href).href;
+		const mock = `
+			window.usersFailed = true; window.userRequests = 0; window.testErrors = [];
+			window.addEventListener('error', event => window.testErrors.push(event.message));
+			const users = [
+				{ id: 9, firstName: 'Alice', lastName: 'Test', email: 'alice@example.com', username: 'alice', age: 29, phone: '123', role: 'user', image: '',
+					company: { name: 'Компания', title: 'Дизайнер' }, address: { city: 'Алматы', country: 'Казахстан' }, password: 'sensitive-test-value', bank: {}, crypto: {} },
+				{ id: 11, firstName: 'Bobby', lastName: 'Test', email: 'bobby@example.com', image: '' }
+			];
+			const products = [1, 2, 3].map(id => ({ id, title: 'Товар ' + id, description: 'Описание', price: 10, discountPercentage: 0,
+				rating: 4, stock: 10, category: 'beauty', images: [], thumbnail: '', availabilityStatus: 'In Stock', reviews: id === 3 ? [] : [
+					{ reviewerName: 'Alice Test', reviewerEmail: ' ALICE@example.com ', rating: 5, comment: '<img src=x onerror=alert(1)>', date: '2024-05-23T08:56:21.618Z' },
+					{ reviewerName: 'Bobby Test', reviewerEmail: 'bobby@example.com', rating: 4, comment: 'Хороший товар' },
+					{ reviewerName: 'Alice Test', reviewerEmail: 'unmatched@example.com', rating: 3, comment: 'Профиля нет' }
+				] }));
+			window.fetch = async url => {
+				const path = new URL(url).pathname;
+				if (path === '/users') {
+					window.userRequests++;
+					if (window.usersFailed) throw new Error('Offline');
+					return { ok: true, json: async () => ({ users, total: users.length }) };
+				}
+				if (path === '/products/categories') return { ok: true, json: async () => [{ slug: 'beauty', name: 'Beauty' }] };
+				if (path === '/products') return { ok: true, json: async () => ({ products, total: products.length }) };
+				throw new Error('Unexpected request');
+			};`;
+		html = html.replace("<head>", `<head><base href="${base}">${live ? "" : `<script>${mock}<\/script>`}`);
+		const loaded = new Promise((resolve) => { frame.onload = resolve; });
+		frame.srcdoc = html;
+		await loaded;
+		const win = frame.contentWindow;
+		const doc = frame.contentDocument;
+		const $ = (selector) => doc.querySelector(selector);
+		await until(() => $(".product-open"));
+		assert(!$(".auth-controls") && !win.Api && !win.Auth, "Вход и общий API из первого этапа удалены");
+		assert($(".product-rating").textContent.includes("Отзывы:"), "Количество отзывов видно в каталоге");
+		$(".product-open").click();
+		await until(() => $(".review"));
+		if (!live) {
+			await until(() => $(".retry-review-authors"));
+			assert(doc.querySelectorAll(".review").length === 3 && !$(".reviewer-button"), "При ошибке пользователей отзывы остаются доступны");
+			win.usersFailed = false;
+			$(".retry-review-authors").click();
+		}
+		await until(() => $(".reviewer-button"));
+		assert($(".reviewer-button").textContent.trim().length > 0, "Автор отзыва связан с пользователем DummyJSON");
+		if (!live) {
+			assert(doc.querySelectorAll(".reviewer-button").length === 2 && $(".reviewer-button").dataset.reviewerId === "9", "Связь по email, включая регистр и пробелы");
+			assert(!doc.querySelectorAll(".review")[2].querySelector(".reviewer-button"), "Совпадение имени не назначает чужой профиль");
+			assert($(".review-text").textContent.startsWith("<img") && !$(".review-text img"), "Текст отзыва вставляется безопасно");
+			assert($(".review time").textContent.includes("23.05.2024"), "Дата отзыва отображается");
+		}
+		const authorName = $(".reviewer-button").textContent.trim();
+		$(".reviewer-button").click();
+		assert($("#reviewer-dialog").open && $("#product-dialog").open && $("#reviewer-title").textContent === authorName, "Профиль автора открывается поверх товара");
+		assert($(".reviewer-details").textContent.includes("Email") && $(".reviewer-details").textContent.includes("Компания"), "В профиле показаны контакты и компания");
+		assert(!$("#reviewer-content").textContent.includes("sensitive-test-value") && !$("#reviewer-content").textContent.includes("password"), "Профиль не выводит чувствительные поля");
+		doc.documentElement.dataset.theme = "dark";
+		assert(win.getComputedStyle($("#reviewer-dialog")).backgroundColor === "rgb(32, 39, 49)", "Профиль поддерживает тёмную тему");
+		assert($("#reviewer-dialog").getBoundingClientRect().width <= 360 && $("#reviewer-content").scrollWidth <= $("#reviewer-content").clientWidth, "Профиль помещается на ширине 360px");
+		$("#close-reviewer").click();
+		assert(!$("#reviewer-dialog").open && $("#product-dialog").open, "Закрытие профиля возвращает к товару");
+		$("#close-dialog").click();
+		await tick();
+		doc.querySelectorAll(".product-open")[1].click();
+		await until(() => $(".reviewer-button"));
+		if (!live) {
+			assert(win.userRequests === 2, "После успешного повтора пользователи кешируются для других товаров");
+			$("#close-dialog").click();
+			await tick();
+			doc.querySelectorAll(".product-open")[2].click();
+			await until(() => $(".detail-reviews .dialog-empty"));
+			assert($(".detail-reviews .dialog-empty").textContent === "Пока нет отзывов.", "Для товара без отзывов показано пустое состояние");
+			assert(win.testErrors.length === 0, "Нет необработанных ошибок JavaScript");
+		}
+		result.textContent = `PASS: ${checks.length} проверок${live ? " (настоящий API)" : ""}\n` + checks.join("\n");
+	} catch (error) {
+		result.textContent = `FAIL после ${checks.length} проверок: ${error.message}\n` + checks.join("\n");
+	} finally {
+		keys.forEach((key, index) => saved[index] === null ? localStorage.removeItem(key) : localStorage.setItem(key, saved[index]));
+	}
+})();
+</script>
+</html>
