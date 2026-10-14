@@ -1,34 +1,31 @@
-(() => {
-	const storageKey = "site-theme";
-	const root = document.documentElement;
-	let theme = "light";
+const themeRoot = document.documentElement;
+themeRoot.dataset.theme = "light";
 
-	try {
-		if (localStorage.getItem(storageKey) === "dark") theme = "dark";
-	} catch {
-		// Сақтау қолжетімсіз болса да, тақырыпты ауыстыру жұмыс істейді.
+// Бет ашылғанда сақталған тақырыпты қолданады.
+try {
+	if (localStorage.getItem("site-theme") === "dark") {
+		themeRoot.dataset.theme = "dark";
 	}
-	root.dataset.theme = theme;
+} catch {
+	// Сақтау қолжетімсіз болса, ашық тақырып қолданылады.
+}
 
-	function initializeThemeToggle() {
-		const button = document.getElementById("theme-toggle");
-		if (!button) return;
-		button.setAttribute("aria-pressed", String(theme === "dark"));
-		button.addEventListener("click", () => {
-			theme = root.dataset.theme === "dark" ? "light" : "dark";
-			root.dataset.theme = theme;
-			button.setAttribute("aria-pressed", String(theme === "dark"));
-			try {
-				localStorage.setItem(storageKey, theme);
-			} catch {
-				// Бұл жағдайда таңдалған тақырып тек ағымдағы бетте сақталады.
-			}
-		});
-	}
+document.addEventListener("DOMContentLoaded", function () {
+	const button = document.getElementById("theme-toggle");
+	if (!button) return;
+	button.setAttribute("aria-pressed", themeRoot.dataset.theme === "dark");
 
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", initializeThemeToggle, { once: true });
-	} else {
-		initializeThemeToggle();
-	}
-})();
+	button.onclick = function () {
+		if (themeRoot.dataset.theme === "dark") {
+			themeRoot.dataset.theme = "light";
+		} else {
+			themeRoot.dataset.theme = "dark";
+		}
+		button.setAttribute("aria-pressed", themeRoot.dataset.theme === "dark");
+		try {
+			localStorage.setItem("site-theme", themeRoot.dataset.theme);
+		} catch {
+			// Переключение работает и без сохранения.
+		}
+	};
+});

@@ -1,29 +1,10 @@
 const tableContainer = document.getElementById("table-container");
-// Түстер осы ретпен ауысады: ақ → көк → жасыл → қызыл → ақ.
-const colorNames = new Map([
-	["#ffffff", "Ақ"],
-	["#3b82f6", "Көк"],
-	["#22c55e", "Жасыл"],
-	["#ef4444", "Қызыл"]
-]);
-const colorCycle = Array.from(colorNames.keys());
-const defaultColor = "#ffffff";
-
-// Әр түске арналған санақ мәтінін бір рет құрады.
-const countElements = new Map();
-for (const [color, name] of colorNames) {
-	const row = document.createElement("span");
-	row.className = "color-count-item";
-	const swatch = document.createElement("span");
-	swatch.className = "color-preview";
-	swatch.style.backgroundColor = color;
-	swatch.setAttribute("aria-hidden", "true");
-	const count = document.createElement("span");
-	count.dataset.countColor = color;
-	row.append(swatch, `${name}: `, count);
-	document.getElementById("color-counts").append(row);
-	countElements.set(color, count);
-}
+const colors = [
+	{ value: "#ffffff", name: "Ақ" },
+	{ value: "#3b82f6", name: "Көк" },
+	{ value: "#22c55e", name: "Жасыл" },
+	{ value: "#ef4444", name: "Қызыл" }
+];
 
 // Пайдаланушы енгізген өлшемдер бойынша жаңа кесте құрады.
 function createTable(rows, columns) {
@@ -46,7 +27,16 @@ function createTable(rows, columns) {
 			button.className = "cell-button";
 			button.dataset.position = `${row + 1}-жол, ${column + 1}-баған`;
 			cell.append(button);
-			setCellColor(cell, defaultColor);
+			let colorIndex = 0;
+			setCellColor(cell, colorIndex);
+
+			// Әр басқанда келесі түс таңдалады.
+			button.onclick = function () {
+				colorIndex++;
+				if (colorIndex === colors.length) colorIndex = 0;
+				setCellColor(cell, colorIndex);
+				updateColorCount();
+			};
 		}
 	}
 
@@ -55,29 +45,34 @@ function createTable(rows, columns) {
 	return table;
 }
 
-function setCellColor(cell, color) {
-	cell.dataset.color = color;
-	cell.style.backgroundColor = color;
+function setCellColor(cell, colorIndex) {
+	const color = colors[colorIndex];
+	cell.dataset.color = color.value;
+	cell.style.backgroundColor = color.value;
 	const button = cell.querySelector("button");
-	button.setAttribute("aria-label", `${button.dataset.position}: ${colorNames.get(color)}`);
+	button.setAttribute("aria-label", `${button.dataset.position}: ${color.name}`);
 }
 
 // Мысалы: countCellsByColor("#ef4444") қызыл ұяшықтардың санын қайтарады.
 function countCellsByColor(color) {
-	const normalizedColor = color.trim().toLowerCase();
-	return Array.from(tableContainer.querySelectorAll("td"))
-		.filter((cell) => cell.dataset.color === normalizedColor).length;
+	color = color.trim().toLowerCase();
+	const cells = tableContainer.querySelectorAll("td");
+	let count = 0;
+	for (let i = 0; i < cells.length; i++) {
+		if (cells[i].dataset.color === color) count++;
+	}
+	return count;
 }
 
 function updateColorCount() {
-	for (const [color, count] of countElements) {
-		count.textContent = countCellsByColor(color);
+	for (let i = 0; i < colors.length; i++) {
+		document.getElementById("count-" + i).textContent = countCellsByColor(colors[i].value);
 	}
 	document.getElementById("total-count").textContent =
 		`Барлығы: ${tableContainer.querySelectorAll("td").length} ұяшық`;
 }
 
-document.getElementById("table-form").addEventListener("submit", (event) => {
+document.getElementById("table-form").onsubmit = function (event) {
 	event.preventDefault();
 	const error = document.getElementById("table-error");
 	try {
@@ -89,15 +84,6 @@ document.getElementById("table-form").addEventListener("submit", (event) => {
 	} catch (exception) {
 		error.textContent = exception.message;
 	}
-});
-
-tableContainer.addEventListener("click", (event) => {
-	const button = event.target.closest(".cell-button");
-	if (!button || !tableContainer.contains(button)) return;
-	const cell = button.closest("td");
-	const nextIndex = (colorCycle.indexOf(cell.dataset.color) + 1) % colorCycle.length;
-	setCellColor(cell, colorCycle[nextIndex]);
-	updateColorCount();
-});
+};
 
 createTable(5, 5);

@@ -1,34 +1,9 @@
-:root {
+﻿html {
 	color-scheme: light;
-	--ink: #17212b;
-	--muted: #66727d;
-	--paper: #f5f1e9;
-	--accent: #e26d4f;
-	--line: #d7cec1;
-	--surface: #fff;
-	--placeholder: #d8d1c6;
-	--button-bg: #17212b;
-	--button-ink: #fff;
-	--button-hover: #354453;
-	--error: #b91c1c;
-	--cell-line: #b6afa4;
-	--cell-outline: #17212b;
 }
 
-:root[data-theme="dark"] {
+html[data-theme="dark"] {
 	color-scheme: dark;
-	--ink: #edf1f7;
-	--muted: #afb8c5;
-	--paper: #151a21;
-	--accent: #ff9578;
-	--line: #434c59;
-	--surface: #202731;
-	--placeholder: #343e4c;
-	--button-bg: #edf1f7;
-	--button-ink: #151a21;
-	--button-hover: #cbd5e1;
-	--error: #ff9090;
-	--cell-line: #778292;
 }
 
 * {
@@ -38,9 +13,9 @@
 body {
 	margin: 0;
 	min-height: 100vh;
-	color: var(--ink);
+	color: #17212b;
 	font-family: Georgia, "Times New Roman", serif;
-	background: var(--paper);
+	background: #f5f1e9;
 }
 
 .members-page {
@@ -57,22 +32,22 @@ body {
 
 .theme-toggle {
 	min-height: 44px;
-	border: 1px solid var(--line);
+	border: 1px solid #d7cec1;
 	border-radius: 6px;
 	padding: 10px 16px;
-	color: var(--ink);
-	background: var(--surface);
+	color: #17212b;
+	background: #fff;
 	font: 700 14px/1.4 Arial, sans-serif;
 	cursor: pointer;
 }
 
-.theme-toggle:hover { border-color: var(--accent); }
-.theme-toggle[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
-.theme-toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.theme-toggle:hover { border-color: #e26d4f; }
+.theme-toggle[aria-pressed="true"] { border-color: #e26d4f; color: #e26d4f; }
+.theme-toggle:focus-visible { outline: 3px solid #e26d4f; outline-offset: 3px; }
 
 .eyebrow {
 	margin: 0 0 18px;
-	color: var(--accent);
+	color: #e26d4f;
 	font: 700 13px/1.2 Arial, sans-serif;
 	letter-spacing: 3px;
 }
@@ -87,7 +62,7 @@ h1 {
 .subtitle {
 	max-width: 500px;
 	margin: 24px 0 54px;
-	color: var(--muted);
+	color: #66727d;
 	font: 17px/1.6 Arial, sans-serif;
 }
 
@@ -108,18 +83,18 @@ h1 {
 	min-height: 44px;
 	padding: 12px 22px;
 	border-radius: 6px;
-	color: var(--button-ink);
-	background: var(--button-bg);
+	color: #fff;
+	background: #17212b;
 	font: 700 16px/1.3 Arial, sans-serif;
 	text-decoration: none;
 }
 
 .task-button:hover {
-	background: var(--button-hover);
+	background: #354453;
 }
 
 .task-button:focus-visible {
-	outline: 3px solid var(--accent);
+	outline: 3px solid #e26d4f;
 	outline-offset: 3px;
 }
 
@@ -127,10 +102,10 @@ h1 {
 	position: relative;
 	display: block;
 	overflow: hidden;
-	border: 1px solid var(--line);
+	border: 1px solid #d7cec1;
 	padding: 14px 14px 78px;
-	color: var(--ink);
-	background: var(--surface);
+	color: #17212b;
+	background: #fff;
 	text-decoration: none;
 	transition: transform .25s ease, box-shadow .25s ease;
 }
@@ -142,7 +117,7 @@ h1 {
 .member-card:hover,
 .member-card:focus-visible {
 	transform: translateY(-8px);
-	box-shadow: 12px 12px 0 var(--accent);
+	box-shadow: 12px 12px 0 #e26d4f;
 }
 
 .member-card img {
@@ -150,7 +125,7 @@ h1 {
 	width: 100%;
 	aspect-ratio: 4 / 5;
 	object-fit: cover;
-	background: var(--placeholder);
+	background: #d8d1c6;
 }
 
 .member-card__info {
@@ -170,7 +145,7 @@ h1 {
 }
 
 .member-card small {
-	color: var(--accent);
+	color: #e26d4f;
 	font: 700 12px Arial, sans-serif;
 	white-space: nowrap;
 }
@@ -182,7 +157,7 @@ h1 {
 }
 
 .back-link {
-	color: var(--accent);
+	color: #e26d4f;
 	font: 700 14px Arial, sans-serif;
 	text-decoration: none;
 }
@@ -200,7 +175,7 @@ h1 {
 	aspect-ratio: 1;
 	object-fit: cover;
 	border-radius: 50%;
-	background: var(--placeholder);
+	background: #d8d1c6;
 }
 
 .resume-header h1 {
@@ -210,12 +185,12 @@ h1 {
 .resume-header p,
 .resume-section p,
 .resume-section li {
-	color: var(--muted);
+	color: #66727d;
 	font: 16px/1.7 Arial, sans-serif;
 }
 
 .resume-section {
-	border-top: 1px solid var(--line);
+	border-top: 1px solid #d7cec1;
 	padding: 28px 0;
 }
 
@@ -223,6 +198,66 @@ h1 {
 	margin: 0 0 14px;
 	font-size: 28px;
 	font-weight: 400;
+}
+
+/* Цвета тёмной темы. */
+html[data-theme="dark"] body {
+	color: #edf1f7;
+	background: #151a21;
+}
+
+html[data-theme="dark"] .theme-toggle,
+html[data-theme="dark"] .member-card {
+	color: #edf1f7;
+	background: #202731;
+	border-color: #434c59;
+}
+
+html[data-theme="dark"] .theme-toggle:hover,
+html[data-theme="dark"] .theme-toggle[aria-pressed="true"] {
+	border-color: #ff9578;
+}
+
+html[data-theme="dark"] .theme-toggle[aria-pressed="true"],
+html[data-theme="dark"] .eyebrow,
+html[data-theme="dark"] .member-card small,
+html[data-theme="dark"] .back-link {
+	color: #ff9578;
+}
+
+html[data-theme="dark"] .theme-toggle:focus-visible,
+html[data-theme="dark"] .task-button:focus-visible {
+	outline-color: #ff9578;
+}
+
+html[data-theme="dark"] .subtitle,
+html[data-theme="dark"] .resume-header p,
+html[data-theme="dark"] .resume-section p,
+html[data-theme="dark"] .resume-section li {
+	color: #afb8c5;
+}
+
+html[data-theme="dark"] .task-button {
+	color: #151a21;
+	background: #edf1f7;
+}
+
+html[data-theme="dark"] .task-button:hover {
+	background: #cbd5e1;
+}
+
+html[data-theme="dark"] .member-card:hover,
+html[data-theme="dark"] .member-card:focus-visible {
+	box-shadow: 12px 12px 0 #ff9578;
+}
+
+html[data-theme="dark"] .member-card img,
+html[data-theme="dark"] .resume-header img {
+	background: #343e4c;
+}
+
+html[data-theme="dark"] .resume-section {
+	border-color: #434c59;
 }
 
 @media (max-width: 650px) {
