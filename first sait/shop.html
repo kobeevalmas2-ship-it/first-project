@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Каталог товаров с поиском, категориями и корзиной на данных DummyJSON.">
+	<title>Магазин — DummyJSON</title>
+	<script src="theme.js"></script>
+	<link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="shop.css">
+	<script src="shop.js" defer></script>
+</head>
+<body>
+	<main class="shop-page">
+		<div class="theme-tools">
+			<button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">Тёмная тема</button>
+		</div>
+		<a class="back-link shop-back" href="sait.html">← На главную</a>
+		<header class="shop-header">
+			<p class="eyebrow">МАГАЗИН / DUMMYJSON</p>
+			<h1>Вещи с характером.</h1>
+			<p>Изучайте каталог, собирайте корзину и оформляйте демонстрационный заказ.</p>
+		</header>
+
+		<section class="shop-controls" aria-label="Поиск и фильтры товаров">
+			<form id="shop-search" class="shop-search" role="search">
+				<label for="search-input">Найти товар</label>
+				<div class="shop-search__row">
+					<input id="search-input" type="search" placeholder="Например, телефон или крем" autocomplete="off">
+					<button class="shop-button" type="submit">Найти</button>
+				</div>
+			</form>
+			<label class="shop-select-label" for="category-select">Категория
+				<select id="category-select">
+					<option value="">Все товары</option>
+				</select>
+			</label>
+			<label class="shop-select-label" for="sort-select">Сортировка
+				<select id="sort-select">
+					<option value="">По умолчанию</option>
+					<option value="price:asc">Цена: по возрастанию</option>
+					<option value="price:desc">Цена: по убыванию</option>
+					<option value="rating:desc">Рейтинг: сначала высокий</option>
+					<option value="title:asc">Название: от А до Я</option>
+				</select>
+			</label>
+		</section>
+
+		<p id="shop-status" class="shop-status" role="status" aria-live="polite" aria-atomic="true"></p>
+
+		<div class="shop-layout">
+			<section class="catalog" aria-labelledby="catalog-heading">
+				<div class="catalog-heading">
+					<div>
+						<p class="eyebrow">КАТАЛОГ</p>
+						<h2 id="catalog-heading">Выбрано для вас</h2>
+					</div>
+					<p id="result-count" class="result-count" aria-live="polite"></p>
+				</div>
+				<div id="catalog-error" class="shop-error" role="alert" hidden>
+					<p>Не удалось загрузить товары. Проверьте соединение и попробуйте ещё раз.</p>
+					<button id="retry-catalog" class="shop-button shop-button--quiet" type="button">Повторить</button>
+				</div>
+				<p id="empty-results" class="empty-results" hidden>Ничего не найдено. Попробуйте изменить запрос или категорию.</p>
+				<ul id="product-grid" class="product-grid" aria-label="Товары"></ul>
+				<button id="show-more" class="shop-button shop-button--more" type="button" hidden>Показать ещё</button>
+			</section>
+
+			<aside class="cart-panel" aria-labelledby="cart-heading">
+				<div class="cart-panel__heading">
+					<div>
+						<p class="eyebrow">ВАШ ВЫБОР</p>
+						<h2 id="cart-heading">Корзина <span id="cart-count" class="cart-count" aria-label="Товаров в корзине">0</span></h2>
+					</div>
+					<button id="retry-cart" class="text-button" type="button" hidden>Повторить</button>
+				</div>
+				<p id="cart-status" class="cart-status" role="status" aria-live="polite"></p>
+				<ul id="cart-items" class="cart-items" aria-label="Товары в корзине"></ul>
+				<p id="cart-empty" class="cart-empty">Корзина пока пуста.</p>
+				<div class="cart-total">
+					<span>Итого со скидками</span>
+					<strong id="cart-total">0 $</strong>
+				</div>
+				<button id="checkout-button" class="shop-button checkout-button" type="button" disabled>Оформить заказ</button>
+				<p id="order-status" class="order-status" role="status" aria-live="polite"></p>
+				<p class="demo-note">DummyJSON — демонстрационный сервер: заказ не сохраняется.</p>
+			</aside>
+		</div>
+	</main>
+
+	<dialog id="product-dialog" class="product-dialog" aria-label="Подробная информация о товаре">
+		<div class="dialog-top">
+			<p class="eyebrow">ПОДРОБНЕЕ О ТОВАРЕ</p>
+			<button id="close-dialog" class="dialog-close" type="button" aria-label="Закрыть окно">Закрыть <span aria-hidden="true">×</span></button>
+		</div>
+		<div id="dialog-content" class="dialog-content" aria-live="polite"></div>
+	</dialog>
+</body>
+</html>
